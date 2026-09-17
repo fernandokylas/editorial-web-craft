@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Encapsulated Prototype Artifact</title>
+  <style>
+    @layer base, layout, components, utilities;
+
+    /* 1. Design tokens — the only place raw values live (unlayered on purpose) */
+    :root {
+      /* grounds & text */
+      --bg-main: #fcfbf9;
+      --text-main: #1a1a1a;
+      --text-muted: #555555;
+      --surface-card: #ffffff;
+      --rule: #e4e2dc;
+      --accent-solid: #0e6245;
+      --accent-text: #0e6245;
+      --accent-on-solid: #ffffff;
+
+      /* type */
+      --font-body: system-ui, -apple-system, "Segoe UI", sans-serif;
+      --font-display: Georgia, "Times New Roman", serif;
+      --fs-display: clamp(2.5rem, calc(1.643rem + 4.286vw), 5.5rem);   /* clamp.py --min 2.5rem --max 5.5rem */
+      --fs-h2: clamp(1.75rem, 4vw, 3rem);
+      --fs-h3: clamp(1.25rem, 2.5vw, 1.75rem);
+
+      /* space */
+      --pad-page: clamp(2rem, 5vw, 5rem);
+      --gap-section: clamp(3rem, 8vw, 6rem);
+      --gap-grid: clamp(1.5rem, 4vw, 3.5rem);
+      --radius: 6px;
+
+      /* motion */
+      --transition-smooth: 260ms cubic-bezier(0.16, 1, 0.3, 1);
+      --transition-out: 180ms cubic-bezier(0.16, 1, 0.3, 1);
+
+      /* depth */
+      --z-subground: -10; --z-ground: 0; --z-rail-sticky: 100; --z-navigation: 200;
+      --z-disclosure: 300; --z-modal: 400; --z-critical: 500;
+    }
+
+    @layer base {
+    /* Inverted ground: same tokens, different values */
+    .theme-inverted {
+      --bg-main: #0b0c10;
+      --text-main: #f5f5f5;
+      --text-muted: #a8a8a8;                 /* 7.5:1 on the card surface, not just the ground */
+      --surface-card: #15171c;
+      --rule: #2a2c33;
+      --accent-solid: #1b3d32;
+      --accent-text: #4ade80;
+      --accent-on-solid: #f5f5f5;
+      background: var(--bg-main);
+      color: var(--text-main);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { -webkit-text-size-adjust: 100%; scrollbar-gutter: stable; }
+    body {
+      background: var(--bg-main);
+      color: var(--text-main);
+      font-family: var(--font-body);
+      line-height: 1.6;
+      padding-block: var(--pad-page);           /* no horizontal padding on body: full-bleed bands need the edge */
+    }
+    dialog { margin: auto; }                  /* the * reset above would un-centre native dialogs */
+    h1 { font-family: var(--font-display); font-size: var(--fs-display); line-height: 1.1; letter-spacing: -0.02em; }
+    h2 { font-size: var(--fs-h2); line-height: 1.2; }
+    h1, h2, h3, h4 { text-wrap: balance; }
+    p, li, blockquote, figcaption { text-wrap: pretty; }
+    }
+
+    /* 2. Layout */
+    @layer layout {
+    .container { max-width: 1200px; margin: 0 auto; padding-inline: 1.5rem; position: relative; isolation: isolate; }
+    .band { padding-block: var(--gap-section); }          /* full-bleed section wrapper; put a .container inside */
+    }
+
+    /* 3. Components */
+    @layer components {
+    .card {
+      position: relative;
+      isolation: isolate;                       /* a room: children stack locally */
+      background: var(--surface-card);
+      border: 1px solid var(--rule);
+      border-radius: var(--radius);
+      padding: var(--gap-grid);
+      transition: transform var(--transition-out), border-color var(--transition-out), box-shadow var(--transition-out);
+    }
+    @media (hover: hover) {
+      .card:hover { transform: translateY(-2px); border-color: var(--accent-solid); transition-duration: 260ms; }
+    }
+    .card:active { transform: translateY(0) scale(0.985); transition-duration: 80ms; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      padding: 0.5rem 1.25rem 0.55rem;          /* optical: heavier bottom */
+      background: var(--accent-solid); color: var(--accent-on-solid);
+      border: 0; border-radius: var(--radius); font: inherit; font-weight: 600; cursor: pointer;
+      transition: transform var(--transition-out), box-shadow var(--transition-out), background-color 150ms linear;
+    }
+    @media (hover: hover) {
+      .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgb(0 0 0 / 0.08); transition-duration: 260ms; }
+    }
+    .btn:active { transform: translateY(0.5px) scale(0.97); box-shadow: none; transition-duration: 80ms; }
+    .btn:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; }
+    .btn svg { width: 1em; height: 1em; position: relative; top: -1px; } /* optical: cap-height */
+    .icon-sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+    }
+
+    /* 4. Utilities — always win */
+    @layer utilities {
+    .stack > * + * { margin-top: var(--gap-grid); }
+    .gap-wide { gap: clamp(2rem, 5vw, 4rem); }
+    .mt-0 { margin-top: 0; }
+    .hidden { display: none; }
+    }
+
+    /* Motion safety net — deliberately UNLAYERED and last: it must beat every layer */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        transition-property: opacity, color, background-color, border-color, box-shadow, fill, stroke !important;
+        transition-duration: 150ms !important;
+        animation: none !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Inline icon sprite: define once, <use> many -->
+  <svg class="icon-sprite" aria-hidden="true" viewBox="0 0 0 0">
+    <symbol id="i-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 12h16M14 6l6 6-6 6"/>
+    </symbol>
+  </svg>
+
+  <!-- 5. Semantic UI -->
+  <main id="app-root" class="container">
+    <h1>Prototype title</h1>
+    <p>Replace this with the first section. Everything the page needs is already in this file.</p>
+    <p><button class="btn" type="button" data-action="demo"><span class="btn-label">Continue</span> <svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-arrow"/></svg></button></p>
+  </main>
+
+  <script>
+    // 6. State & behaviour — one block, one entry point
+    (() => {
+      const state = { clicks: 0 };
+      const root = document.getElementById('app-root');
+
+      root.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-action]');
+        if (!btn) return;
+        state.clicks += 1;
+        btn.querySelector('.btn-label').textContent = `Continue (${state.clicks})`;   // label only; the icon stays
+      });
+
+      document.addEventListener('DOMContentLoaded', () => {
+        console.log('Encapsulated mockup initialised.');
+      });
+    })();
+  </script>
+</body>
+</html>

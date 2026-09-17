@@ -1,0 +1,63 @@
+/* Skeleton engine — a partial. The host stylesheet declares
+   `@layer base, layout, components, utilities;` first; import this with
+   `@import url("skeleton.css") layer(components);` or paste it after the order statement.
+   Colours come from tokens so an inverted ground remaps them. */
+
+:root {
+  --skeleton-base: #eae9e6;                 /* one step below the surface */
+  --skeleton-sheen: rgb(255 255 255 / 0.6); /* the travelling highlight */
+  --skeleton-radius: 4px;
+  --skeleton-appear-delay: 300ms;           /* don't flash for fast responses */
+}
+
+@layer components {
+  .theme-inverted {
+    --skeleton-base: #1f2127;
+    --skeleton-sheen: rgb(255 255 255 / 0.06);
+  }
+
+  /* Region wrapper: hides itself for the first N ms so fast loads never show it */
+  .is-loading-state {
+    opacity: 0;
+    animation: skeleton-appear 0s linear var(--skeleton-appear-delay) forwards;
+  }
+  @keyframes skeleton-appear { to { opacity: 1; } }
+
+  .skeleton-bar {
+    position: relative;
+    overflow: hidden;
+    background: var(--skeleton-base);
+    border-radius: var(--skeleton-radius);
+  }
+  /* The sheen is a pseudo-element moved with transform — compositor only, no repaint */
+  .skeleton-bar::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent 0%, var(--skeleton-sheen) 50%, transparent 100%);
+    animation: skeleton-sheen 1.6s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+  }
+  @keyframes skeleton-sheen { to { transform: translateX(100%); } }
+
+  /* Stubs: heights match the real type scale, widths vary to read as text */
+  .title-stub        { height: 0.85rem; width: 60px;  margin-bottom: 0.5rem; }
+  .text-stub-short   { height: 0.8rem;  width: 110px; }
+  .heading-stub      { height: var(--fs-h2, 2.25rem); width: 85%; margin-bottom: 1.5rem; }
+  .text-stub-full    { height: 1.05rem; width: 100%; margin-bottom: 0.75rem; }
+  .text-stub-long    { height: 1.05rem; width: 95%;  margin-bottom: 0.75rem; }
+  .text-stub-partial { height: 1.05rem; width: 62%; }
+  .avatar-stub       { width: 2.5rem; height: 2.5rem; border-radius: 50%; }
+  .image-stub        { width: 100%; aspect-ratio: 16 / 9; border-radius: var(--skeleton-radius); }
+  .button-stub       { height: 2.5rem; width: 8rem; border-radius: var(--skeleton-radius); }
+  .row-stub          { height: 2.75rem; width: 100%; margin-bottom: 1px; border-radius: 0; }
+
+  /* Content crossfade when the real thing arrives */
+  .is-loaded-state { animation: content-in 150ms linear; }
+  @keyframes content-in { from { opacity: 0; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .skeleton-bar::after { animation: none; }            /* static grey, still clearly a placeholder */
+    .is-loading-state { animation: none; opacity: 1; }   /* the appear-delay IS an animation: set the end state explicitly */
+  }
+}

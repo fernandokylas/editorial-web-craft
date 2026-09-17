@@ -1,0 +1,8 @@
+{
+  "bad-page.html":        {"single-file": 6, "semantics": 6, "cls": 2, "layers": 2},
+  "bad-layers.css":       {"layers": 4},
+  "bad-ink.css":          {"ink": 3},
+  "bad-zindex.css":       {"z-index": 5},
+  "good-tokens.css":      {"ink": 0, "layers": 0},
+  "motion-unguarded.css": {"motion": 1}
+}

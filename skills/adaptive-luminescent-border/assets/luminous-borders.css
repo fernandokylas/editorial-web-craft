@@ -1,0 +1,87 @@
+/* Luminous borders — partial. Host declares `@layer base, layout, components, utilities;` first.
+   Two ground profiles driven by tokens: a debossed groove on paper, a glowing fiber on obsidian. */
+
+:root {
+  /* Paper: the line is a shadow (dark hairline) with a light highlight beneath — a groove */
+  --edge-stroke: 1px;
+  --edge-hi:   rgb(255 255 255 / 0.7);      /* highlight */
+  --edge-lo:   rgb(0 0 0 / 0.07);           /* hairline */
+  --edge-tint: rgb(14 98 69 / 0.10);        /* accent infusion (accent-solid, light) */
+  --edge-blend: normal;                     /* multiply can't show a highlight; the groove comes from the inset shadow */
+  --edge-solid: #e4e2dc;                    /* decorative @supports fallback (faint) */
+  --edge-functional: #8a8a86;               /* inputs/buttons: 3.35:1 on paper (WCAG 1.4.11) */
+  --panel-glass: rgb(252 251 249 / 0.85);
+  --groove: inset 0 1px 0 var(--edge-hi), 0 1px 0 var(--edge-lo);   /* light line inside the top edge, dark line under the bottom */
+  --hr-fade: rgb(0 0 0 / 0.12);
+}
+
+@layer components {
+  .theme-inverted {
+    --edge-stroke: 0.5px;                   /* fiber line; renders 1px on 1x, true half on 2x+ */
+    --edge-hi:   rgb(255 255 255 / 0.28);
+    --edge-lo:   rgb(255 255 255 / 0.04);
+    --edge-tint: rgb(74 222 128 / 0.18);    /* accent-text, dark */
+    --edge-blend: plus-lighter;
+    --groove: none;                         /* on obsidian the fiber line does the work */
+    --edge-solid: #2a2c33;
+    --edge-functional: #666a73;             /* 3.61:1 on obsidian */
+    --panel-glass: rgb(11 12 16 / 0.72);
+    --hr-fade: rgb(255 255 255 / 0.16);
+  }
+
+  /* ---- Panel with a gradient stroke drawn by a masked pseudo-element ---- */
+  .luminescent-panel {
+    position: relative;
+    background: var(--surface-card, var(--bg-main));
+    border-radius: 8px;
+    box-shadow: var(--groove);
+    isolation: isolate;                     /* keeps the blend inside the panel */
+  }
+  .luminescent-panel::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: var(--edge-stroke);
+    background: linear-gradient(135deg, var(--edge-hi) 0%, var(--edge-lo) 50%, var(--edge-tint) 100%);
+    /* Keep only the ring: paint content-box, subtract it from the full box */
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+            mask: linear-gradient(#fff 0 0) content-box exclude, linear-gradient(#fff 0 0);
+    mix-blend-mode: var(--edge-blend);
+    pointer-events: none;
+  }
+  /* Glass only where it's earned — opt in, it's a full-area filter */
+  .luminescent-panel.is-glass { background: var(--panel-glass); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+  @media (prefers-reduced-transparency: reduce) {
+    .luminescent-panel.is-glass { background: var(--surface-card, var(--bg-main)); backdrop-filter: none; -webkit-backdrop-filter: none; }
+  }
+
+  /* Solid fallback when mask compositing isn't available */
+  @supports not ((mask-composite: exclude) or (-webkit-mask-composite: xor)) {
+    .luminescent-panel { border: 1px solid var(--edge-solid); }
+    .luminescent-panel::after { display: none; }
+  }
+
+  /* ---- Horizontal divider: a hairline that fades at both ends ---- */
+  .luminescent-rule {
+    border: 0;
+    height: var(--edge-stroke);
+    margin: 0;
+    background: linear-gradient(90deg, transparent, var(--hr-fade) 15%, var(--hr-fade) 85%, transparent);
+    mix-blend-mode: var(--edge-blend);
+  }
+
+  /* ---- Grid with dividers in the gaps, no per-cell borders ---- */
+  .luminescent-grid {
+    display: grid;
+    gap: var(--edge-stroke);
+    background: var(--edge-lo);             /* the gap colour becomes the divider */
+  }
+  .luminescent-grid > * { background: var(--bg-main); }
+
+  /* ---- Functional boundaries stay solid and ≥3:1 (WCAG 1.4.11) ---- */
+  .input-edge, .luminescent-panel:is(button, [role="button"], a) {
+    border: 1px solid var(--edge-functional);
+  }
+}

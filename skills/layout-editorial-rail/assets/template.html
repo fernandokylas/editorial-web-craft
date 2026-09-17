@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Editorial Rail Template</title>
+<style>
+  @layer base, layout, components, utilities;
+
+  :root {
+    --bg-main: #faf9f6;
+    --text-main: #1a1a1a;
+    --text-muted: #555555;                 /* 7.2:1 — the rail is 0.75rem, so AAA, not AA */
+    --rule: #e4e2dc;
+    --surface-code: #f1efe9;
+    --font-display: "Newsreader", Georgia, serif;
+    --font-body: "Geist Sans", "Helvetica Neue", system-ui, sans-serif;
+    --fs-h2: clamp(1.5rem, calc(1.214rem + 1.429vw), 2.5rem);
+    --gap-rail: clamp(2rem, 5vw, 4rem);
+    --z-subground: -10; --z-ground: 0; --z-rail-sticky: 100; --z-navigation: 200;
+    --z-disclosure: 300; --z-modal: 400; --z-critical: 500;
+  }
+  @layer base {
+  * { box-sizing: border-box; }
+  html { scrollbar-gutter: stable; }
+  body {
+    margin: 0;
+    background: var(--bg-main);
+    color: var(--text-main);
+    font-family: var(--font-body);
+    font-size: 1.0625rem;
+    line-height: 1.6;
+  }
+  main { padding-inline: clamp(1rem, 3vw, 2rem); }
+  }
+
+  /* ---- The ledger grid ---- */
+  @layer layout {
+  .editorial-container {
+    display: grid;
+    grid-template-columns: minmax(180px, 1fr) minmax(auto, 62ch);
+    gap: var(--gap-rail);
+    align-items: start;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 3rem 0;
+    border-top: 1px solid var(--rule);
+    position: relative;
+    isolation: isolate;
+  }
+  .editorial-container:first-of-type { border-top: 0; }
+
+  .rail {
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    font-weight: 600;             /* ink: small + uppercase */
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    line-height: 1.4;
+    color: var(--text-muted);
+    position: sticky;
+    top: 2rem;
+    z-index: var(--z-rail-sticky);
+  }
+  .rail p { margin: 0 0 0.5rem; }
+  .rail .metric { font-size: 1.5rem; letter-spacing: 0; text-transform: none; color: var(--text-main); font-family: var(--font-display); font-variant-numeric: tabular-nums; }
+
+  .copy { max-width: 62ch; }
+  }
+
+  @layer components {
+  .copy h2 { font-family: var(--font-display); font-size: var(--fs-h2); line-height: 1.15; letter-spacing: -0.015em; margin: 0 0 1rem; text-wrap: balance; }
+  .copy p { margin: 0 0 1.25rem; text-wrap: pretty; }
+  .copy ul { padding-left: 1.25rem; }
+
+  /* Wide elements step out into the rail gap, prose snaps back. No transform: no stacking context, no overflow */
+  .breakout {
+    width: calc(100% + var(--gap-rail));
+    max-width: 85ch;
+    margin: 2rem 0 2rem calc(-1 * var(--gap-rail));
+    overflow-x: auto;
+  }
+  .breakout table { width: 100%; border-collapse: collapse; font-family: var(--font-body); font-size: 0.875rem; font-weight: 500; }
+  .breakout th, .breakout td { text-align: left; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--rule); }
+  .breakout pre { margin: 0; padding: 1rem; background: var(--surface-code); overflow-x: auto; font-size: 0.85rem; font-weight: 500; line-height: 1.5; }
+
+  }
+
+  @media (max-width: 720px) {
+    @layer layout {
+    .editorial-container { grid-template-columns: 1fr; gap: 0.75rem 0; padding: 2rem 0; }
+    .rail { position: static; margin-bottom: 0.25rem; }
+    }
+    @layer components {
+    .breakout { width: 100%; max-width: none; margin-left: 0; }   /* same layer as the base rule, or it loses */
+    }
+  }
+</style>
+</head>
+<body>
+<main>
+
+<section class="editorial-container">
+  <aside class="rail">
+    <p>01 — Overview</p>
+    <p>14 Sep 2026</p>
+  </aside>
+  <div class="copy">
+    <h2>Section title goes here</h2>
+    <p>Body copy lives in this column and never exceeds 62 characters per line. Replace this paragraph with the first section's narrative.</p>
+    <p>Second paragraph. Keep the rail on the left to headings, dates, labels, and small metrics only.</p>
+  </div>
+</section>
+
+<section class="editorial-container">
+  <aside class="rail">
+    <p>02 — Findings</p>
+    <p class="metric">+12.4%</p>
+    <p>Revenue vs. prior year</p>
+  </aside>
+  <div class="copy">
+    <h2>A section with a wide table</h2>
+    <p>Prose before the table stays within the reading cap.</p>
+    <div class="breakout">
+      <table>
+        <thead><tr><th>Line</th><th>Q1</th><th>Q2</th><th>Q3</th><th>Δ</th></tr></thead>
+        <tbody>
+          <tr><td>Receivables (days)</td><td>41</td><td>56</td><td>52</td><td>+11</td></tr>
+          <tr><td>Payables (days)</td><td>38</td><td>35</td><td>36</td><td>−2</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Prose after the table snaps straight back to 62ch.</p>
+  </div>
+</section>
+
+</main>
+</body>
+</html>

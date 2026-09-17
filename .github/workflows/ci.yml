@@ -1,0 +1,34 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: Validate skills and manifests
+        run: python3 scripts/validate.py
+      - name: Checkers behave on fixtures
+        run: python3 tests/run_fixtures.py
+      - name: Every bundled asset passes the audit
+        run: |
+          set -e
+          A=skills/web-craft/scripts/audit.py
+          python3 $A skills/encapsulated-mockup-builder/assets/boilerplate.html
+          python3 $A skills/layout-editorial-rail/assets/template.html
+          for css in skills/perceived-latency-mask/assets/skeleton.css skills/sub-pixel-inertia-scroll/assets/kinetic-planes.css skills/adaptive-luminescent-border/assets/luminous-borders.css skills/magnetic-hitbox-warp/assets/magnetic.css; do
+            (echo "@layer base, layout, components, utilities;"; cat "$css") > /tmp/hosted.css
+            python3 $A /tmp/hosted.css
+          done
+          for js in skills/*/assets/*.js; do node -e "new Function(require('fs').readFileSync('$js','utf8'))"; done
+      - name: Examples pass the audit
+        run: |
+          set -e
+          for f in examples/*.html; do python3 skills/web-craft/scripts/audit.py "$f" --allow-cdn --allow-fonts; done
+      - name: Hook script runs
+        run: |
+          echo '{"tool_name":"Write","tool_input":{"file_path":"examples/case-study.html"}}' | CLAUDE_PLUGIN_ROOT=$PWD python3 hooks/on-write.py

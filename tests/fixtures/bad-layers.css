@@ -1,0 +1,8 @@
+/* expected: layers FAIL ×4 */
+@layer base { body { margin: 0 !important; } }
+@layer base, layout, components, utilities;
+.stray { color: red; }
+#hero .row .col .item { gap: 0; }
+@layer theme { :root { --x: 1; } }
+@layer utilities { .mt-0 { margin-top: 0 !important; } }
+@media (max-width: 720px) { .grid { display: block; } }

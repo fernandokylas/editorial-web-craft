@@ -1,0 +1,4 @@
+/* expected: ink FAIL ×3 */
+.tag{font-size:11px;font-weight:400;text-transform:uppercase;letter-spacing:0.02em;line-height:1.2}
+.dark .x{color:#fff}
+.y{-webkit-font-smoothing:antialiased}

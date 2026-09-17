@@ -1,0 +1,72 @@
+/* Magnetic targets — partial. Host declares `@layer base, layout, components, utilities;` first.
+   Markup:
+     <span class="magnetic" data-magnetic="6">                         ← field host (not focusable)
+       <button class="btn magnetic-target" type="button">…</button>   ← the real control, styled by its own class
+     </span>
+   .magnetic-target adds ONLY the motion (transform/transition/tracking state); it never sets colour,
+   padding or radius, so it composes with any button style. .magnetic-pill is an optional look.
+   The field extends via a pseudo-element, so layout and neighbours are untouched. */
+
+:root {
+  --magnet-reach: 2rem;                                  /* invisible field around the target (20–45px) */
+  --magnet-pull: 6px;                                    /* max displacement of the visual */
+  --ease-track: cubic-bezier(0.25, 1, 0.2, 1);           /* while following the cursor */
+  --ease-recoil: linear(0, 0.4 8%, 0.85 18%, 1.08 30%, 0.98 44%, 1.01 58%, 1); /* dampened spring back */
+  --dur-recoil: 400ms;                                   /* visible state lands by ~150ms; the tail is the settle */
+}
+
+@layer components {
+  .magnetic {
+    position: relative;
+    display: inline-flex;
+    isolation: isolate;
+  }
+  /* The gravitational zone: enlarges the hover area without enlarging the box */
+  .magnetic::before {
+    content: "";
+    position: absolute;
+    inset: calc(var(--magnet-reach) * -1);
+    border-radius: inherit;
+    z-index: -1;                                         /* behind the control so clicks hit the button */
+  }
+
+  .magnetic-target {
+    position: relative;
+    /* Rest → recoil: spring back to anchor */
+    transition: transform var(--dur-recoil) var(--ease-recoil),
+                background-color 150ms linear,
+                box-shadow var(--dur-recoil) var(--ease-track);
+    transform: translate3d(var(--mx, 0px), var(--my, 0px), 0) scale(var(--ms, 1));
+  }
+  /* Optional pill look — omit when the control already has a button style */
+  .magnetic-pill {
+    padding: 0.75rem 1.5rem 0.8rem;                      /* optical: heavier bottom */
+    background: var(--text-main);
+    color: var(--bg-main);
+    border: 0;
+    border-radius: 999px;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  /* Only pointer devices with hover get the field; touch never sees this */
+  @media (hover: hover) and (pointer: fine) {
+    .magnetic.is-tracking .magnetic-target {
+      --ms: 1.03;
+      box-shadow: 0 10px 25px rgb(0 0 0 / 0.12);
+      transition: transform 150ms var(--ease-track),   /* tight follow while inside the field */
+                  background-color 150ms linear,
+                  box-shadow 300ms var(--ease-track);
+    }
+  }
+
+  .magnetic.is-tracking .magnetic-pill { background: var(--accent-solid); color: var(--accent-on-solid); }
+  .magnetic-target:active { --ms: 0.97; transition-duration: 80ms; }
+  .magnetic-target:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 3px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .magnetic-target { transition: background-color 150ms linear, box-shadow 150ms linear; transform: none; }
+    .magnetic.is-tracking .magnetic-target { transform: none; }
+  }
+}

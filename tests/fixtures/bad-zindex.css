@@ -1,0 +1,7 @@
+/* expected: z-index FAIL ×5 */
+:root { --z-ground: 0; --z-modal: 400; }
+.hdr { position: fixed; z-index: 9999; }
+.tip { position: absolute; z-index: var(--z-critical); }
+.x { z-index: 5; }
+.card { transform: translateY(-2px); }
+.m { position: fixed; z-index: 400 !important; }

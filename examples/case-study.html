@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Halden &amp; Roe — Working capital case study</title>
+  <style>
+    @layer base, layout, components, utilities;
+
+    /* 1. Design tokens — the only place raw values live (unlayered on purpose) */
+    :root {
+      /* grounds & text — paper (ground-inversion-guard) */
+      --ground-paper: #fcfbf9;
+      --ground-obsidian: #0b0c10;
+      --bg-main: var(--ground-paper);
+      --text-main: #1a1a1a;          /* 16.8:1 */
+      --text-muted: #555555;         /*  7.2:1 — the AAA floor for muted */
+      --surface-card: #ffffff;
+      --rule: #e4e2dc;               /* decorative hairline only */
+      --accent-solid: #0e6245;       /* fills */
+      --accent-text: #0e6245;        /*  7.1:1 as text on paper */
+      --accent-on-solid: #ffffff;    /*  7.4:1 on the fill */
+      --danger-text: #a12a2a;        /*  7.0:1 — invalid-field edge and text */
+
+      /* luminous edges — paper profile (adaptive-luminescent-border) */
+      --edge-stroke: 1px;
+      --edge-hi:   rgb(255 255 255 / 0.7);
+      --edge-lo:   rgb(0 0 0 / 0.07);
+      --edge-tint: rgb(14 98 69 / 0.10);
+      --edge-blend: multiply;
+      --edge-solid: #e4e2dc;
+      --edge-functional: #8a8a86;    /* 3.35:1 — inputs, WCAG 1.4.11 */
+      --panel-glass: rgb(252 251 249 / 0.85);
+      --hr-fade: rgb(0 0 0 / 0.12);
+
+      /* type — system-only "modern" pair (editorial-type-tokens/references/pairings.md) */
+      --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+      --font-body: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-weight-display: 700;
+      --letter-spacing-display: -0.02em;
+      --line-height-display: 1.1;
+      --font-weight-body-regular: 400;
+      --font-weight-body-bold: 600;
+      --line-height-body: 1.6;
+
+      /* fluid sizes — derived with fluid-clamp-calculator/scripts/clamp.py (320 → 1440) */
+      --fs-display:   clamp(2.5rem, calc(1.857rem + 3.214vw), 4.75rem);
+      --fs-h2:        clamp(1.75rem, calc(1.536rem + 1.071vw), 2.5rem);
+      --fs-h3:        clamp(1.25rem, calc(1.179rem + 0.357vw), 1.5rem);
+      --fs-kpi:       clamp(2.25rem, calc(1.821rem + 2.143vw), 3.75rem);
+      --fs-pull:      clamp(1.5rem, calc(1.286rem + 1.071vw), 2.25rem);
+      --fs-watermark: clamp(8rem, calc(5.143rem + 14.286vw), 18rem);
+      --fs-body: 1.0625rem;
+
+      /* space */
+      --pad-page:    clamp(2rem, calc(1.143rem + 4.286vw), 5rem);
+      --pad-x:       1.5rem;
+      --gap-section: clamp(3rem, calc(2.143rem + 4.286vw), 6rem);
+      --gap-grid:    clamp(1.5rem, calc(1.071rem + 2.143vw), 3rem);
+      --gap-rail:    clamp(2rem, calc(1.429rem + 2.857vw), 4rem);
+      --radius: 6px;
+
+      /* motion — one material (tactile-interaction-curves) */
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in-out: cubic-bezier(0.76, 0, 0.24, 1);
+      --ease-rest: cubic-bezier(0.1, 0.9, 0.2, 1);        /* heavy tail for arrivals */
+      --ease-track: cubic-bezier(0.25, 1, 0.2, 1);
+      --ease-recoil: linear(0, 0.4 8%, 0.85 18%, 1.08 30%, 0.98 44%, 1.01 58%, 1);
+      --dur-in: 260ms;
+      --dur-out: 180ms;
+      --dur-press: 80ms;
+      --dur-rest: 900ms;
+      --shadow-rest: 0 1px 2px rgb(0 0 0 / 0.04);
+      --shadow-hover: 0 4px 12px rgb(0 0 0 / 0.08);
+      --magnet-reach: 2rem;
+      --magnet-pull: 6px;
+      --plane-bg-factor: 0.3;
+
+      /* depth (z-index-coordinate-matrix) */
+      --z-subground: -10; --z-ground: 0; --z-rail-sticky: 100; --z-navigation: 200;
+      --z-disclosure: 300; --z-modal: 400; --z-critical: 500;
+    }
+
+    /* ---------- BASE ---------- */
+    @layer base {
+    /* Inverted ground: same tokens, different values. Accents flip role: fills stay deep, text goes bright. */
+    .theme-inverted {
+      --bg-main: var(--ground-obsidian);
+      --text-main: #f5f5f5;          /* 17.9:1 — never pure white */
+      --text-muted: #b4b4b4;         /*  9.4:1 on obsidian, 8.7:1 on the card surface */
+      --surface-card: #15171c;
+      --rule: #2a2c33;
+      --accent-solid: #1b3d32;
+      --accent-text: #4ade80;        /* 11.2:1 */
+      --accent-on-solid: #f5f5f5;    /* 10.9:1 on the deep-green box */
+      --edge-stroke: 0.5px;
+      --edge-hi:   rgb(255 255 255 / 0.28);
+      --edge-lo:   rgb(255 255 255 / 0.04);
+      --edge-tint: rgb(74 222 128 / 0.18);
+      --edge-blend: plus-lighter;
+      --edge-solid: #2a2c33;
+      --edge-functional: #666a73;    /* 3.61:1 */
+      --panel-glass: rgb(11 12 16 / 0.72);
+      --hr-fade: rgb(255 255 255 / 0.16);
+      background: var(--bg-main);
+      color: var(--text-main);
+      -webkit-font-smoothing: antialiased;     /* ink: only on dark grounds */
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; scrollbar-gutter: stable; }
+    body {
+      margin: 0;
+      background: var(--bg-main);
+      color: var(--text-main);
+      font-family: var(--font-body);
+      font-size: var(--fs-body);
+      font-weight: var(--font-weight-body-regular);
+      line-height: var(--line-height-body);
+      letter-spacing: 0;
+    }
+
+    /* Two faces, two jobs (editorial-type-tokens) */
+    h1, h2, .editorial-headline {
+      font-family: var(--font-display);
+      font-weight: var(--font-weight-display);
+      letter-spacing: var(--letter-spacing-display);
+      line-height: var(--line-height-display);
+      color: var(--text-main);
+      margin: 0;
+      text-wrap: balance;
+    }
+    h1 { font-size: var(--fs-display); }
+    h2 { font-size: var(--fs-h2); line-height: 1.15; }
+    h3, h4 {
+      font-family: var(--font-body);
+      font-weight: var(--font-weight-body-bold);
+      font-size: var(--fs-h3);
+      line-height: 1.3;
+      letter-spacing: -0.01em;
+      margin: 0;
+      text-wrap: balance;
+    }
+    p, li, blockquote, figcaption, dd { text-wrap: pretty; }
+    p { margin: 0 0 1.25rem; max-width: 62ch; }
+    ul, ol { margin: 0 0 1.25rem; padding-left: 1.25rem; }
+    dl, dd { margin: 0; }
+    input, select, textarea, button { font: inherit; letter-spacing: inherit; }
+    a { color: var(--accent-text); text-decoration: underline; text-underline-offset: 0.15em; text-decoration-thickness: 1px; }
+    a:focus-visible, button:focus-visible, summary:focus-visible, input:focus-visible, textarea:focus-visible {
+      outline: 2px solid var(--accent-text); outline-offset: 3px;
+    }
+    table { border-collapse: collapse; }
+    strong { font-weight: var(--font-weight-body-bold); }
+    svg { display: inline-block; }
+    }
+
+    /* ---------- LAYOUT ---------- */
+    @layer layout {
+    .band { padding-inline: var(--pad-x); }
+    .band-pad { padding-block: var(--pad-page); }
+    .container { max-width: 1200px; margin: 0 auto; position: relative; isolation: isolate; }
+
+    /* The ledger grid (layout-editorial-rail) */
+    .editorial-container {
+      display: grid;
+      grid-template-columns: minmax(180px, 1fr) minmax(auto, 62ch);
+      gap: var(--gap-rail);
+      align-items: start;
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: var(--gap-section) 0;
+      position: relative;
+      isolation: isolate;
+    }
+    .rail {
+      font-family: var(--font-body);
+      font-size: 0.75rem;
+      font-weight: 600;                 /* ink: small + uppercase */
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      line-height: 1.4;
+      color: var(--text-muted);
+      position: sticky;
+      top: 2rem;
+      z-index: var(--z-rail-sticky);
+    }
+    .rail p { margin: 0 0 0.5rem; max-width: none; }
+    .rail .metric { font-family: var(--font-display); font-size: 1.5rem; font-weight: 700; letter-spacing: -0.01em; text-transform: none; color: var(--text-main); font-variant-numeric: tabular-nums; }
+    .copy { max-width: 62ch; }
+
+    /* Wide elements step out, prose snaps back.
+       Adapted from the template: bleeds into the rail gap only, never past the container edge. */
+    .breakout {
+      width: calc(100% + var(--gap-rail));
+      max-width: 85ch;
+      margin: 2rem 0 2rem calc(-1 * var(--gap-rail));
+      overflow-x: auto;
+    }
+
+    /* Section hosting parallax planes (sub-pixel-inertia-scroll) */
+    .kinetic-section { position: relative; overflow: clip; isolation: isolate; }
+    .kinetic-content { position: relative; z-index: 1; }
+    .parallax-meta-bg {
+      position: absolute; inset: 0; z-index: 0;
+      pointer-events: none; user-select: none;
+      font-family: var(--font-display);
+      font-size: var(--fs-watermark);
+      font-weight: 900; line-height: 1;
+      color: var(--text-main); opacity: 0.05;
+      text-align: right;
+      padding-right: 0.05em;
+      will-change: transform;
+      animation: plane-drift linear both;
+      animation-timeline: view();
+      animation-range: entry 0% exit 100%;
+      --drift: calc(-40vh * var(--plane-bg-factor));
+    }
+    @keyframes plane-drift {
+      from { transform: translateY(calc(var(--drift) * -1)); }
+      to   { transform: translateY(var(--drift)); }
+    }
+
+    .hero { padding-block: var(--pad-page) var(--gap-section); }
+    .hero-top { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: var(--gap-section); }
+    .hero h1 { max-width: 20ch; margin: 0.75rem 0 1.5rem; }
+    .hero-lede { font-size: 1.1875rem; max-width: 52ch; margin-bottom: 2rem; }
+    .hero-meta { display: flex; flex-wrap: wrap; gap: 1.5rem var(--gap-grid); }
+    .hero-meta > div { min-width: 9rem; }
+
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); margin: 0 0 2rem; }
+
+    .site-footer { padding-block: var(--gap-grid); }
+    .footer-row { display: flex; flex-wrap: wrap; gap: 1rem var(--gap-grid); justify-content: space-between; align-items: flex-start; padding-top: 1.5rem; }
+    .footer-row .copy-narrow { max-width: 68ch; }
+    }
+
+    /* ---------- COMPONENTS ---------- */
+    @layer components {
+    /* Metadata voice — the third register */
+    .ui-metadata {
+      font-family: var(--font-body);
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      line-height: 1.4;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin: 0;
+      max-width: none;
+    }
+
+    /* Wordmark: geometric mark + name */
+    .wordmark { display: inline-flex; align-items: center; gap: 0.6rem; text-decoration: none; color: var(--text-main); }
+    .wordmark svg { width: 1.75rem; height: 1.75rem; position: relative; top: -0.5px; /* optical: cap-height */ }
+    .wordmark .mark-secondary { fill: var(--accent-text); }
+    .wordmark-text { font-family: var(--font-display); font-weight: 700; font-size: 1.375rem; letter-spacing: -0.01em; line-height: 1; }
+    .wordmark-text .amp { font-weight: 400; font-style: italic; }
+
+    /* Icons: 24-grid, inherit colour, follow font size */
+    .icon { width: 1em; height: 1em; flex: none; }
+    .icon-sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+    /* Hero meta list */
+    .hero-meta dd { font-weight: 500; margin-top: 0.25rem; }
+
+    /* Luminous panel — masked gradient stroke, blend mode per ground */
+    .luminescent-panel {
+      position: relative;
+      background: var(--panel-glass);
+      border-radius: 8px;
+      isolation: isolate;
+    }
+    .luminescent-panel::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      padding: var(--edge-stroke);
+      background: linear-gradient(135deg, var(--edge-hi) 0%, var(--edge-lo) 50%, var(--edge-tint) 100%);
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+              mask: linear-gradient(#fff 0 0) content-box exclude, linear-gradient(#fff 0 0);
+      mix-blend-mode: var(--edge-blend);
+      pointer-events: none;
+    }
+    @supports not ((mask-composite: exclude) or (-webkit-mask-composite: xor)) {
+      .luminescent-panel { border: 1px solid var(--edge-solid); }
+      .luminescent-panel::after { display: none; }
+    }
+    .luminescent-rule {
+      border: 0;
+      height: var(--edge-stroke);
+      margin: 0;
+      background: linear-gradient(90deg, transparent, var(--hr-fade) 15%, var(--hr-fade) 85%, transparent);
+      mix-blend-mode: var(--edge-blend);
+    }
+    .luminescent-grid {
+      display: grid;
+      gap: var(--edge-stroke);
+      background: var(--edge-lo);
+    }
+    .luminescent-grid > * { background: var(--bg-main); }
+    .input-edge { border: 1px solid var(--edge-functional); }
+
+    /* KPI tiles */
+    .kpi { padding: 1.25rem 1.25rem 1.35rem 0; }
+    .kpi + .kpi { padding-left: 1.5rem; }
+    .kpi-value {
+      font-family: var(--font-display);
+      font-size: var(--fs-kpi);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.05;
+      color: var(--accent-text);
+      font-variant-numeric: tabular-nums;
+      margin: 0.35rem 0 0.35rem;
+    }
+    .kpi-note { font-size: 0.875rem; font-weight: 500; letter-spacing: 0.01em; line-height: 1.5; color: var(--text-muted); margin: 0; }
+
+    /* Ledger table */
+    .ledger-table { width: 100%; font-size: 0.875rem; font-weight: 500; letter-spacing: 0.01em; line-height: 1.5; font-variant-numeric: tabular-nums; min-height: 14rem; }
+    .ledger-table caption { text-align: left; padding: 0 0 0.75rem; caption-side: top; }
+    .ledger-table th, .ledger-table td { text-align: left; padding: 0.6rem 0.75rem 0.65rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+    .ledger-table th { font-weight: 600; }
+    .ledger-table thead th { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.08em; line-height: 1.4; text-transform: uppercase; color: var(--text-muted); border-bottom: 1px solid var(--edge-functional); }
+    .ledger-table .num { text-align: right; white-space: nowrap; }
+    .ledger-table tbody th { padding-left: 0; }
+    .ledger-table td:last-child, .ledger-table thead th:last-child { padding-right: 0; }
+    .ledger-table tfoot td, .ledger-table tfoot th { border-bottom: 0; color: var(--text-muted); font-size: 0.8125rem; font-weight: 500; letter-spacing: 0.02em; line-height: 1.5; padding-top: 0.75rem; }
+    .delta-good { color: var(--accent-text); font-weight: 600; }
+
+    /* Numbered recommendations */
+    .rec-list { list-style: none; padding: 0; margin: 0 0 1.5rem; counter-reset: rec; }
+    .rec-list li { counter-increment: rec; display: grid; grid-template-columns: 3rem 1fr; gap: 0.75rem; padding: 1rem 0 1.1rem; border-top: 1px solid var(--rule); }
+    .rec-list li:first-child { border-top: 0; padding-top: 0; }
+    .rec-list li::before {
+      content: "0" counter(rec);
+      font-family: var(--font-display);
+      font-size: 1.5rem; font-weight: 700; line-height: 1;
+      letter-spacing: -0.01em;
+      color: var(--accent-text);
+      font-variant-numeric: tabular-nums;
+      position: relative; top: 0.15em;  /* optical: sit the numeral on the first line's x-height */
+    }
+    .rec-list h3 { font-size: 1.0625rem; margin-bottom: 0.25rem; }
+    .rec-list p { margin: 0; }
+
+    /* Pull statement in the dark band */
+    .pull-statement { font-family: var(--font-display); font-size: var(--fs-pull); font-weight: 400; font-style: italic; line-height: 1.3; letter-spacing: -0.01em; max-width: 30ch; margin: 0 0 1.5rem; text-wrap: balance; }
+    .stat-panel { padding: 1.5rem 1.75rem 1.6rem; margin-top: 2rem; display: grid; grid-template-columns: auto 1fr; gap: 0.25rem 1.5rem; align-items: baseline; }
+    .stat-panel .kpi-value { font-size: var(--fs-kpi); margin: 0; }
+    .stat-panel p { margin: 0; }
+
+    /* FAQ: native disclosures (html5-native-fallback) */
+    .accordion-node { border-bottom: 1px solid var(--rule); }
+    .accordion-node:first-of-type { border-top: 1px solid var(--rule); }
+    .accordion-trigger {
+      display: flex; justify-content: space-between; align-items: center; gap: 1rem;
+      list-style: none; cursor: pointer;
+      padding: 1.1rem 0 1.15rem;
+      transition: color 150ms linear;
+    }
+    .accordion-trigger::-webkit-details-marker { display: none; }
+    .accordion-trigger h3 { font-size: 1.0625rem; line-height: 1.35; margin: 0; }
+    .accordion-trigger:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 4px; }
+    .trigger-indicator {
+      flex: none; width: 1.25rem; height: 1.25rem; color: var(--accent-text);
+      transition: transform 220ms var(--ease-in-out);
+    }
+    .accordion-node[open] .trigger-indicator { transform: rotate(45deg); }
+    .accordion-content { padding: 0.25rem 0 1.25rem; max-width: 62ch; }
+    .accordion-content p:last-child { margin-bottom: 0; }
+
+    /* Primary action: tactile physics (tactile-interaction-curves) with optical padding (visual-weight-tuner) */
+    .btn {
+      display: inline-flex; align-items: center; gap: 0.6rem;
+      padding: 0.8rem 1.5rem 0.85rem;          /* optical: heavier bottom */
+      background: var(--accent-solid); color: var(--accent-on-solid);
+      border: 0; border-radius: 999px;
+      font-weight: 600; line-height: 1.2; cursor: pointer;
+      text-decoration: none;
+      box-shadow: var(--shadow-rest);
+      transition: transform var(--dur-out) var(--ease-out),
+                  box-shadow var(--dur-out) var(--ease-out),
+                  background-color 150ms linear;   /* exit timings */
+    }
+    .btn .icon { position: relative; top: -0.5px; /* optical: cap-height alignment */ }
+    .btn:active {
+      transform: translateY(0.5px) scale(0.97);
+      box-shadow: var(--shadow-rest);
+      transition-duration: var(--dur-press);
+    }
+    .btn-quiet {
+      background: transparent; color: var(--text-main);
+      border: 1px solid var(--edge-functional);
+      box-shadow: none;
+    }
+    .cta-row { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem 1.5rem; }
+    .cta-alt { font-size: 0.9375rem; }
+
+    /* Magnetic field around the primary CTA (magnetic-hitbox-warp) */
+    .magnetic { position: relative; display: inline-flex; isolation: isolate; }
+    .magnetic::before {
+      content: "";
+      position: absolute;
+      inset: calc(var(--magnet-reach) * -1);
+      border-radius: inherit;
+      z-index: -1;
+    }
+    .magnetic-target {
+      position: relative;
+      transition: transform 450ms var(--ease-recoil),
+                  background-color 150ms linear,
+                  box-shadow 450ms var(--ease-track);
+      transform: translate3d(var(--mx, 0px), var(--my, 0px), 0) scale(var(--ms, 1));
+    }
+    .magnetic-target:active { --ms: 0.97; transition-duration: var(--dur-press); }
+
+    /* CTA panel */
+    .cta-panel { padding: var(--gap-grid); }
+    .cta-panel h2 { font-size: var(--fs-h3); font-family: var(--font-display); margin-bottom: 0.5rem; }
+    .cta-panel p { margin-bottom: 1.5rem; }
+
+    /* Contact dialog — top layer, no z-index (html5-native-fallback, z-index-coordinate-matrix) */
+    .contact-dialog {
+      background: var(--surface-card); color: var(--text-main);
+      border: 0; border-radius: 8px; padding: 0;
+      width: min(34rem, calc(100vw - 2rem));
+      box-shadow: 0 24px 60px rgb(0 0 0 / 0.18);
+    }
+    .contact-dialog::backdrop { background: rgb(11 12 16 / 0.55); }
+    .contact-form { padding: var(--gap-grid); display: grid; gap: 0.35rem; }
+    .dialog-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 0.5rem; }
+    .dialog-head h2 { font-size: var(--fs-h3); }
+    .icon-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 2.25rem; height: 2.25rem; border-radius: 50%;
+      border: 0; background: transparent; color: var(--text-main); cursor: pointer;
+      transition: background-color 150ms linear;
+    }
+    .icon-btn .icon { width: 1.25rem; height: 1.25rem; }
+    .contact-form label { display: block; margin-top: 0.75rem; }
+    .contact-form input, .contact-form textarea {
+      display: block; width: 100%;
+      padding: 0.6rem 0.75rem 0.65rem;
+      border-radius: var(--radius);
+      background: var(--bg-main); color: var(--text-main);
+      transition: border-color 150ms linear;
+    }
+    .contact-form input:focus, .contact-form textarea:focus { border-color: var(--accent-solid); }
+    .contact-form input:user-invalid, .contact-form textarea:user-invalid { border-color: var(--danger-text); }
+    .form-hint { font-size: 0.8125rem; font-weight: 500; letter-spacing: 0.02em; line-height: 1.5; color: var(--text-muted); margin: 0.35rem 0 0; }
+    .dialog-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1.25rem; }
+
+    /* Section divider waves (inline-svg-decorator/scripts/wave.py) */
+    .editorial-divider { color: var(--ground-obsidian); line-height: 0; overflow: hidden; display: block; }
+    .vector-wave, .vector-wave-top { width: 100%; height: clamp(2.5rem, 8vw, 5rem); display: block; }
+
+    /* Fine print (accessible-ink-scale) */
+    .fine-print-legal {
+      font-size: 0.8rem;
+      font-weight: 500;             /* one tier up */
+      letter-spacing: 0.02em;
+      line-height: 1.5;
+      color: var(--text-muted);
+      margin: 0 0 0.5rem;
+    }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 0.25rem 1.25rem; list-style: none; padding: 0; margin: 0; }
+    .footer-links a { font-size: 0.8125rem; font-weight: 500; letter-spacing: 0.02em; line-height: 1.5; color: var(--text-main); }
+
+    /* Skip link — sits on the critical floor only while focused */
+    .skip-link {
+      position: fixed; top: 0.5rem; left: 0.5rem;
+      z-index: var(--z-critical);
+      padding: 0.5rem 0.9rem 0.55rem;
+      background: var(--accent-solid); color: var(--accent-on-solid);
+      border-radius: var(--radius); font-weight: 600; text-decoration: none;
+      transform: translateY(-200%);
+    }
+    .skip-link:focus-visible { transform: none; outline-offset: 2px; }
+
+    /* Scroll-cued arrival: heavy-tailed rest curve (sub-pixel-inertia-scroll) */
+    .arrive {
+      transition: opacity var(--dur-rest) linear,
+                  transform var(--dur-rest) var(--ease-rest);
+    }
+    .arrive.is-in { opacity: 1; transform: none; }
+    .arrive:nth-child(2) { transition-delay: 60ms; }
+    .arrive:nth-child(3) { transition-delay: 120ms; }
+    }
+
+    /* Only pointer devices get hover layers — touch would leave them stuck */
+    @media (hover: hover) {
+      @layer components {
+      .btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-hover); transition-duration: var(--dur-in); }
+      .btn-quiet:hover { background: var(--surface-card); border-color: var(--text-muted); }
+      .accordion-trigger:hover { color: var(--accent-text); }
+      .icon-btn:hover { background: var(--rule); }
+      .footer-links a:hover { color: var(--accent-text); }
+      }
+    }
+    @media (hover: hover) and (pointer: fine) {
+      @layer components {
+      .magnetic.is-tracking .magnetic-target {
+        --ms: 1.03;
+        background: var(--text-main); color: var(--bg-main);
+        box-shadow: 0 10px 25px rgb(0 0 0 / 0.12);
+        transition: transform 150ms var(--ease-track),   /* tight follow while inside the field */
+                    background-color 150ms linear,
+                    box-shadow 300ms var(--ease-track);
+      }
+      }
+    }
+
+    /* Hide arrivals only when scripting is available, so a no-JS page still shows everything */
+    @media (scripting: enabled) {
+      @layer components {
+      .arrive { opacity: 0; transform: translateY(24px); }
+      }
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      @layer base {
+      html { scroll-behavior: smooth; }
+      }
+    }
+
+    /* Mobile collapse: the rail sits above its copy, never below or hidden */
+    @media (max-width: 720px) {
+      @layer layout {
+      .editorial-container { grid-template-columns: 1fr; gap: 0.75rem 0; padding: var(--gap-grid) 0; }
+      .rail { position: static; margin-bottom: 0.25rem; }
+      .breakout { width: 100%; max-width: none; margin-left: 0; }
+      .kpi-grid { grid-template-columns: 1fr; }
+      .hero h1 { max-width: none; }
+      }
+      @layer components {
+      .kpi + .kpi { padding-left: 0; padding-top: 1.25rem; }
+      .stat-panel { grid-template-columns: 1fr; }
+      }
+    }
+
+    /* Reduced motion: strip displacement, keep state change (reduced-motion-enforcer) */
+    @media (prefers-reduced-motion: reduce) {
+      @layer components {
+      .arrive { opacity: 1; transform: none; transition: none; }
+      .parallax-meta-bg { animation: none; transform: none; will-change: auto; }
+      .btn, .btn:hover, .btn:active { transform: none; }
+      .btn { transition: box-shadow 150ms linear, background-color 150ms linear; }
+      .magnetic-target, .magnetic.is-tracking .magnetic-target { transform: none; transition: background-color 150ms linear, box-shadow 150ms linear; }
+      .accordion-node[open] .trigger-indicator { transform: rotate(45deg); }
+      .trigger-indicator { transition: none; }
+      .skip-link { transform: none; opacity: 0; pointer-events: none; }
+      .skip-link:focus-visible { opacity: 1; pointer-events: auto; }
+      }
+      /* Global safety net for anything a component forgot: only non-spatial properties may animate */
+      @layer utilities {
+      *, *::before, *::after {
+        transition-property: opacity, color, background-color, border-color, box-shadow, fill, stroke;
+        transition-duration: 150ms;
+        animation: none;
+        scroll-behavior: auto;
+        background-attachment: scroll;
+      }
+      }
+    }
+
+    /* ---------- UTILITIES — always win ---------- */
+    @layer utilities {
+    .nowrap { white-space: nowrap; }
+    .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    .text-muted { color: var(--text-muted); }
+    }
+  </style>
+</head>
+<body>
+
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <!-- Inline icon sprite: define once, <use> many (inline-svg-decorator/references/icon-set.md) -->
+  <svg class="icon-sprite" aria-hidden="true" focusable="false" viewBox="0 0 0 0">
+    <symbol id="i-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 12h16M14 6l6 6-6 6"/>
+    </symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 5v14M5 12h14"/>
+    </symbol>
+    <symbol id="i-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M6 6l12 12M18 6L6 18"/>
+    </symbol>
+  </svg>
+
+  <!-- ===== HERO (banner) ===== -->
+  <header class="hero band kinetic-section">
+    <div class="parallax-meta-bg" data-plane="0.3" aria-hidden="true">H&amp;R</div>
+    <div class="container kinetic-content">
+      <div class="hero-top">
+        <a class="wordmark" href="mailto:hello@haldenroe.example">
+          <svg viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+            <rect x="3" y="3" width="17" height="17" rx="2" fill="currentColor"/>
+            <circle cx="21" cy="21" r="8" class="mark-secondary"/>
+          </svg>
+          <span class="wordmark-text">Halden <span class="amp">&amp;</span> Roe</span>
+        </a>
+        <p class="ui-metadata">Case study <span aria-hidden="true">·</span> Working capital <span aria-hidden="true">·</span> <span class="nowrap">Sep 2026</span></p>
+      </div>
+
+      <p class="ui-metadata arrive">Marrick Fabrication Ltd <span aria-hidden="true">—</span> Precision engineering</p>
+      <h1 class="arrive">Releasing £14.6m of cash from a business that believed it had none to spare.</h1>
+      <p class="hero-lede arrive">A fourteen-week working-capital engagement for a three-plant metal fabricator took its cash conversion cycle from 93 to 55&nbsp;days without a headcount change, a new system, or a single supplier walking away.</p>
+
+      <dl class="hero-meta">
+        <div><dt class="ui-metadata">Client</dt><dd>Marrick Fabrication Ltd</dd></div>
+        <div><dt class="ui-metadata">Revenue</dt><dd>£182m <span class="text-muted">(FY25)</span></dd></div>
+        <div><dt class="ui-metadata">Engagement</dt><dd><span class="nowrap">14 weeks</span>, <span class="nowrap">Feb–May 2026</span></dd></div>
+        <div><dt class="ui-metadata">Team</dt><dd>Partner, two managers, one analyst</dd></div>
+      </dl>
+    </div>
+  </header>
+
+  <main id="main">
+    <div class="band">
+      <div class="container">
+
+        <!-- 01 Context -->
+        <section class="editorial-container" aria-labelledby="h-context">
+          <aside class="rail arrive">
+            <p>01 <span aria-hidden="true">—</span> Context</p>
+            <p><span class="nowrap">Jan 2026</span> baseline</p>
+          </aside>
+          <div class="copy arrive">
+            <h2 id="h-context">Profitable on paper, tight at the bank</h2>
+            <p>Marrick makes precision-fabricated enclosures and chassis for rail, defence and medical-equipment customers from plants in Rotherham, Telford and Kilmarnock. Operating margin had held between 9&#8239;% and 11&#8239;% for four years. Cash had not: the revolving credit facility was 84&#8239;% drawn by January, inventory had grown 31&#8239;% in two years against 12&#8239;% revenue growth, and receivables had crept from 44 to 58&nbsp;days.</p>
+            <p>The trigger was a refinancing due in <span class="nowrap">Q4 2026</span>. The lender had signalled that headroom, not profit, would set the terms. The board asked Halden&nbsp;&amp;&nbsp;Roe for a view on how much cash was recoverable from the balance sheet before it renegotiated, and whether recovering it would damage the customer and supplier relationships the business depends on.</p>
+            <p>Two earlier internal cash programmes had produced a temporary dip in receivables and a permanent rise in the number of people chasing them. Nobody at Marrick wanted a third.</p>
+          </div>
+        </section>
+
+        <hr class="luminescent-rule">
+
+        <!-- 02 Approach -->
+        <section class="editorial-container" aria-labelledby="h-approach">
+          <aside class="rail arrive">
+            <p>02 <span aria-hidden="true">—</span> Approach</p>
+            <p>Weeks 1–4 diagnostic</p>
+            <p>Weeks 5–14 delivery</p>
+          </aside>
+          <div class="copy arrive">
+            <h2 id="h-approach">Change the defaults, not the people</h2>
+            <p>The diagnostic ran on 26&nbsp;months of receivables, payables and inventory ledgers at transaction level, 41 structured interviews across finance, sales, planning and the three plants, and a movement analysis of all 12,400 stocked SKUs. We were looking for the rules and system defaults that quietly decided when cash moved, rather than for people who were slow.</p>
+            <p>Delivery was organised around three workstreams, each owned by a Marrick manager with one of ours alongside:</p>
+            <ul>
+              <li><strong>Receivables.</strong> Invoice accuracy at the point of dispatch, credit-term hygiene, and a credit-hold rule that the sales director could live with.</li>
+              <li><strong>Inventory.</strong> Safety-stock parameters, minimum order quantities, and a disposition route for stock that had stopped moving.</li>
+              <li><strong>Payables.</strong> Harmonised supplier terms with an early-payment option, so that stretching terms never became a way of borrowing from small suppliers.</li>
+            </ul>
+            <p>Every change was tested on one plant for two weeks before the other two adopted it. Where a change moved a number in the wrong direction, it was reversed and written up rather than defended.</p>
+          </div>
+        </section>
+
+        <hr class="luminescent-rule">
+
+        <!-- 03 Findings -->
+        <section class="editorial-container" aria-labelledby="h-findings">
+          <aside class="rail arrive">
+            <p>03 <span aria-hidden="true">—</span> Findings</p>
+            <p>Week 14 close</p>
+            <p><span class="nowrap">8 May 2026</span></p>
+          </aside>
+          <div class="copy arrive">
+            <h2 id="h-findings">Where the cash was hiding</h2>
+
+            <dl class="luminescent-grid kpi-grid">
+              <div class="kpi">
+                <dt class="ui-metadata">Cash released</dt>
+                <dd class="kpi-value">£14.6m</dd>
+                <dd class="kpi-note">8.0&#8239;% of revenue, net of a £1.1m stock write-down</dd>
+              </div>
+              <div class="kpi">
+                <dt class="ui-metadata">Cash conversion cycle</dt>
+                <dd class="kpi-value">93 → 55</dd>
+                <dd class="kpi-note">days, baseline to week 14</dd>
+              </div>
+            </dl>
+
+            <p>Sixty-one percent of overdue receivables traced back to invoices that were wrong when they left the building: a purchase-order number that did not match, a missing delivery note, a price from a superseded quote. Customers were not slow payers; they were being handed reasons to query.</p>
+
+            <div class="breakout">
+              <table class="ledger-table">
+                <caption class="ui-metadata">Working-capital metrics, baseline to week 14</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Measure</th>
+                    <th scope="col" class="num">Baseline</th>
+                    <th scope="col" class="num">Week 14</th>
+                    <th scope="col" class="num">Change</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><th scope="row">Days sales outstanding</th><td class="num">58</td><td class="num">41</td><td class="num delta-good">−17</td></tr>
+                  <tr><th scope="row">Days inventory outstanding</th><td class="num">74</td><td class="num">61</td><td class="num delta-good">−13</td></tr>
+                  <tr><th scope="row">Days payables outstanding</th><td class="num">39</td><td class="num">47</td><td class="num delta-good">+8</td></tr>
+                  <tr><th scope="row">Cash conversion cycle</th><td class="num">93</td><td class="num">55</td><td class="num delta-good">−38</td></tr>
+                  <tr><th scope="row">Revolver drawn</th><td class="num">84&#8239;%</td><td class="num">52&#8239;%</td><td class="num delta-good">−32 pts</td></tr>
+                  <tr><th scope="row">Receivables over 30 days</th><td class="num">12.4&#8239;%</td><td class="num">4.1&#8239;%</td><td class="num delta-good">−8.3 pts</td></tr>
+                </tbody>
+                <tfoot>
+                  <tr><td colspan="4">Baseline is the January 2026 month-end. Week 14 is the 8 May 2026 close. Percentages are of the total receivables book.</td></tr>
+                </tfoot>
+              </table>
+            </div>
+
+            <p>Inventory told a similar story. 2,300 SKUs, £3.1m at cost, had not moved in eighteen months; most were safety stock for parts whose customers had re-specified years earlier, still reordered because nobody had switched the parameter off. On the payables side, 340 suppliers were being paid on seventeen different term structures, several of them shorter than the ones Marrick's own customers enjoyed.</p>
+            <p>None of this required judgement to find. It required someone to look at the settings.</p>
+          </div>
+        </section>
+
+        <hr class="luminescent-rule">
+
+        <!-- 04 Recommendations -->
+        <section class="editorial-container" aria-labelledby="h-recs">
+          <aside class="rail arrive">
+            <p>04 <span aria-hidden="true">—</span> Recommendations</p>
+            <p>Adopted by the board</p>
+            <p><span class="nowrap">21 May 2026</span></p>
+          </aside>
+          <div class="copy arrive">
+            <h2 id="h-recs">Six changes that hold without a programme office</h2>
+            <p>Each recommendation was accepted in full. The first four were live before the engagement closed; the last two took effect from the new financial year.</p>
+            <ol class="rec-list">
+              <li><div><h3>Invoice at dispatch, with a three-way match</h3><p>No invoice leaves without a matched purchase order, delivery note and current price. Mismatches are queued to the account manager the same day, not discovered in a dunning call six weeks later.</p></div></li>
+              <li><div><h3>A credit-hold rule that sales agreed to</h3><p>Accounts over 15&nbsp;days past terms go on hold automatically; the sales director can release a hold once per account per quarter. The rule is public inside the business, so no one is surprised.</p></div></li>
+              <li><div><h3>Quarterly slow-mover disposition</h3><p>Anything without movement for twelve months is reviewed by planning, sales and finance together, and either sold, reworked, returned or written down. The committee's authority is capped so it cannot become a way of hiding losses.</p></div></li>
+              <li><div><h3>Supplier terms harmonised to 45 days</h3><p>One standard, with a 2&#8239;% discount for payment at 15 days that small suppliers can elect into. Marrick pays later on average and its smallest suppliers get paid sooner than before.</p></div></li>
+              <li><div><h3>A weekly cash cockpit for the CFO</h3><p>One page: the three cycle metrics, the revolver position and the ten largest overdue accounts. Reviewed on Monday mornings with the plant general managers on the call.</p></div></li>
+              <li><div><h3>Cash in the plant bonus</h3><p>A quarter of each general manager's variable pay now depends on their plant's inventory days, alongside the existing output and quality measures. What gets paid for gets watched.</p></div></li>
+            </ol>
+          </div>
+        </section>
+
+      </div>
+    </div>
+
+    <!-- Wave into the dark band (wave.py --crests 3 --amplitude 50 --seed 7) -->
+    <div class="editorial-divider" aria-hidden="true">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none" class="vector-wave" aria-hidden="true" focusable="false">
+        <path d="M0,60 C140,7 260,113 400,60 C540,101 660,19 800,60 C940,9 1060,111 1200,60 L1200,120 L0,120 Z" fill="currentColor"/>
+      </svg>
+    </div>
+
+    <!-- ===== KEY TAKEAWAY — inverted ground ===== -->
+    <div class="band theme-inverted">
+      <section class="editorial-container" aria-labelledby="h-takeaway">
+        <aside class="rail arrive">
+          <p>Key takeaway</p>
+          <p>For boards and CFOs</p>
+        </aside>
+        <div class="copy arrive">
+          <h2 id="h-takeaway">Working capital is a design problem, not a discipline problem</h2>
+          <p class="pull-statement">Every pound was sitting behind a setting that someone had chosen once and nobody had revisited.</p>
+          <p>The three cash programmes Marrick had run before this one all assumed the fix was effort: more calls, tighter chasing, a monthly stock count. Effort decays. A default does not. The £14.6m came from changing about forty parameters, rules and templates and then leaving them alone, which is why it was still there at the September month-end.</p>
+          <p>If your business is profitable and short of cash, the money is almost certainly in the settings rather than in the people.</p>
+          <div class="luminescent-panel stat-panel">
+            <p class="kpi-value">£14.6m</p>
+            <p>released within fourteen weeks, with receivables and inventory still improving four months after the engagement closed.</p>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Wave out of the dark band (wave.py --flip) -->
+    <div class="editorial-divider" aria-hidden="true">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none" class="vector-wave-top" aria-hidden="true" focusable="false">
+        <path d="M0,60 C140,7 260,113 400,60 C540,101 660,19 800,60 C940,9 1060,111 1200,60 L1200,120 L0,120 Z" fill="currentColor" transform="scale(1,-1) translate(0,-120)"/>
+      </svg>
+    </div>
+
+    <div class="band">
+      <div class="container">
+
+        <!-- FAQ -->
+        <section class="editorial-container" aria-labelledby="h-faq">
+          <aside class="rail arrive">
+            <p>Questions</p>
+            <p>Asked by every board we meet</p>
+          </aside>
+          <div class="copy arrive">
+            <h2 id="h-faq">Frequently asked</h2>
+            <div class="semantic-accordion-group">
+              <details class="accordion-node" name="faq">
+                <summary class="accordion-trigger">
+                  <h3>How quickly does cash start to move?</h3>
+                  <svg class="trigger-indicator" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><use href="#i-plus"/></svg>
+                </summary>
+                <div class="accordion-content">
+                  <p>Receivables respond first, usually within one billing cycle of fixing invoice accuracy, because customers stop having reasons to hold payment. Inventory takes longest; safety-stock changes only show up as the old stock is consumed, so the full effect arrives over two to three quarters. At Marrick, 60&#8239;% of the total was visible by week 10.</p>
+                </div>
+              </details>
+              <details class="accordion-node" name="faq">
+                <summary class="accordion-trigger">
+                  <h3>Does this need new software?</h3>
+                  <svg class="trigger-indicator" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><use href="#i-plus"/></svg>
+                </summary>
+                <div class="accordion-content">
+                  <p>Almost never. Every ERP we have worked in already has the credit-hold, three-way-match and reorder-parameter features that matter; they are switched off or set to values chosen at go-live. The cash cockpit at Marrick is a spreadsheet fed by a scheduled export. We would rather change forty settings in a system people already use than introduce a forty-first system.</p>
+                </div>
+              </details>
+              <details class="accordion-node" name="faq">
+                <summary class="accordion-trigger">
+                  <h3>How do you charge, and what does it cost against the cash released?</h3>
+                  <svg class="trigger-indicator" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><use href="#i-plus"/></svg>
+                </summary>
+                <div class="accordion-content">
+                  <p>A fixed fee for the four-week diagnostic, quoted before we start, which ends with a sized and sequenced plan you are free to run yourself. Delivery is a fixed weekly rate for the team on site. We do not take a share of the cash released; it makes advisers argue for the largest number rather than the one that holds. On this engagement the total fee was under 4&#8239;% of the cash released in the first year.</p>
+                </div>
+              </details>
+            </div>
+          </div>
+        </section>
+
+        <hr class="luminescent-rule">
+
+        <!-- CTA -->
+        <section class="editorial-container" aria-labelledby="h-cta">
+          <aside class="rail">
+            <p>Next step</p>
+            <p>Reply within two working days</p>
+          </aside>
+          <div class="copy">
+            <div class="luminescent-panel cta-panel">
+              <h2 id="h-cta">Discuss your working-capital position</h2>
+              <p>A forty-minute conversation with the partner who led this engagement. Bring your last three month-end balance sheets; we will bring a view on how much is recoverable and where it is sitting.</p>
+              <div class="cta-row">
+                <span class="magnetic" data-magnetic="6">
+                  <button class="btn magnetic-target" type="button" data-action="open-contact">Request a conversation <svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><use href="#i-arrow"/></svg></button>
+                </span>
+                <span class="cta-alt">or email <a href="mailto:hello@haldenroe.example">hello@haldenroe.example</a></span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer band">
+    <div class="container">
+      <hr class="luminescent-rule">
+      <div class="footer-row">
+        <div class="copy-narrow">
+          <p class="fine-print-legal">© 2026 Halden &amp; Roe LLP. Registered in England and Wales, partnership number OC&#8239;418&#8239;223. Registered office: 14 Bevis Marks, London EC3A 7BA. Halden &amp; Roe LLP is not authorised to give investment, tax or legal advice; nothing on this page constitutes an offer or a recommendation.</p>
+          <p class="fine-print-legal">This case study is published with the client's consent. The client name and location details have been changed and all figures are indexed to protect commercial confidentiality; ratios and time periods are as recorded. Results depend on the circumstances of each business and are not a guarantee of outcome.</p>
+        </div>
+        <ul class="footer-links">
+          <li><a href="mailto:hello@haldenroe.example">Contact</a></li>
+          <li><a href="mailto:privacy@haldenroe.example">Privacy</a></li>
+          <li><a href="mailto:hello@haldenroe.example?subject=Accessibility">Accessibility</a></li>
+        </ul>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Contact dialog: native <dialog>, closes with method="dialog", lives in the top layer -->
+  <dialog class="contact-dialog" id="contact-dialog" aria-labelledby="contact-title">
+    <form method="dialog" class="contact-form">
+      <div class="dialog-head">
+        <h2 id="contact-title">Request a conversation</h2>
+        <button class="icon-btn" type="submit" value="cancel" formnovalidate aria-label="Close"><svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><use href="#i-close"/></svg></button>
+      </div>
+      <p>Tell us who you are and we will come back within two working days with a proposed time.</p>
+      <label for="c-name">Name</label>
+      <input class="input-edge" id="c-name" name="name" type="text" autocomplete="name" required autofocus>
+      <label for="c-email">Work email</label>
+      <input class="input-edge" id="c-email" name="email" type="email" autocomplete="email" required>
+      <label for="c-message">What is on your mind</label>
+      <textarea class="input-edge" id="c-message" name="message" rows="4"></textarea>
+      <p class="form-hint">Optional. A sentence on the business and the timing is enough.</p>
+      <div class="dialog-actions">
+        <button class="btn" type="submit">Send request <svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><use href="#i-arrow"/></svg></button>
+        <button class="btn btn-quiet" type="submit" value="cancel" formnovalidate>Cancel</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script>
+    // One block, one entry point: state, delegated events, arrivals, parallax fallback, magnetic field.
+    (() => {
+      const state = { dialogOpen: false, contactSent: false };
+      const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+      const fine = window.matchMedia('(hover: hover) and (pointer: fine)');
+      const dialog = document.getElementById('contact-dialog');
+
+      // 1. Delegated actions
+      document.body.addEventListener('click', (e) => {
+        const el = e.target.closest('[data-action]');
+        if (!el) return;
+        if (el.dataset.action === 'open-contact' && dialog) {
+          if (typeof dialog.showModal === 'function') dialog.showModal();
+          else dialog.setAttribute('open', '');
+          state.dialogOpen = true;
+        }
+      });
+      if (dialog) {
+        dialog.addEventListener('close', () => {
+          state.dialogOpen = false;
+          if (dialog.returnValue && dialog.returnValue !== 'cancel') state.contactSent = true;
+        });
+      }
+
+      // 2. Scroll-cued arrivals (from sub-pixel-inertia-scroll/assets/inertia-planes.js)
+      const arrivals = document.querySelectorAll('.arrive');
+      if ('IntersectionObserver' in window && !reduce.matches) {
+        const io = new IntersectionObserver((entries) => {
+          for (const en of entries) if (en.isIntersecting) { en.target.classList.add('is-in'); io.unobserve(en.target); }
+        }, { rootMargin: '0px 0px -12% 0px', threshold: 0.1 });
+        arrivals.forEach((el) => io.observe(el));
+      } else {
+        arrivals.forEach((el) => el.classList.add('is-in'));
+      }
+      reduce.addEventListener('change', () => { if (reduce.matches) arrivals.forEach((el) => el.classList.add('is-in')); });
+
+      // 3. Parallax planes — JS lerp fallback only where CSS scroll-driven animations are missing
+      const supportsSDA = CSS.supports('animation-timeline: view()');
+      if (!supportsSDA && !reduce.matches) {
+        const planes = [...document.querySelectorAll('[data-plane]')].map((el) => ({
+          el, factor: parseFloat(el.dataset.plane) || 0.3, current: 0, target: 0,
+          section: el.closest('.kinetic-section') || el.parentElement,
+        }));
+        if (planes.length) {
+          const LERP = 0.12;
+          let ticking = false;
+          const measure = () => {
+            const vh = window.innerHeight;
+            for (const p of planes) {
+              const r = p.section.getBoundingClientRect();
+              const progress = (vh - r.top) / (vh + r.height);
+              p.target = (progress - 0.5) * -0.4 * vh * p.factor;
+            }
+          };
+          const frame = () => {
+            let moving = false;
+            for (const p of planes) {
+              p.current += (p.target - p.current) * LERP;
+              if (Math.abs(p.target - p.current) > 0.05) moving = true;
+              p.el.style.transform = `translate3d(0, ${p.current.toFixed(2)}px, 0)`;
+            }
+            ticking = moving;
+            if (moving) requestAnimationFrame(frame);
+          };
+          const onScroll = () => { measure(); if (!ticking) { ticking = true; requestAnimationFrame(frame); } };
+          addEventListener('scroll', onScroll, { passive: true });
+          addEventListener('resize', onScroll, { passive: true });
+          onScroll();
+          reduce.addEventListener('change', () => { if (reduce.matches) planes.forEach((p) => { p.el.style.transform = ''; }); });
+        }
+      }
+
+      // 4. Magnetic field on the primary CTA (from magnetic-hitbox-warp/assets/magnetic.js;
+      //    reach is resolved to px here — the original parseFloat('2rem') gave 2, not 32)
+      const initMagnetic = (root = document) => {
+        if (!fine.matches) return;
+        const rootPx = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+        const hosts = root.querySelectorAll('.magnetic');
+        hosts.forEach((host) => {
+          const target = host.querySelector('.magnetic-target') || host.firstElementChild;
+          if (!target) return;
+          const maxPull = parseFloat(host.dataset.magnetic) || 6;
+          const reachRaw = getComputedStyle(host).getPropertyValue('--magnet-reach').trim();
+          const reach = reachRaw.endsWith('rem') ? parseFloat(reachRaw) * rootPx : (parseFloat(reachRaw) || 32);
+          let raf = 0, px = 0, py = 0;
+          const apply = () => {
+            raf = 0;
+            target.style.setProperty('--mx', `${px.toFixed(2)}px`);
+            target.style.setProperty('--my', `${py.toFixed(2)}px`);
+          };
+          const move = (e) => {
+            if (reduce.matches) return;
+            const r = host.getBoundingClientRect();
+            const dx = (e.clientX - (r.left + r.width / 2)) / (r.width / 2 + reach);
+            const dy = (e.clientY - (r.top + r.height / 2)) / (r.height / 2 + reach);
+            px = Math.max(-1, Math.min(1, dx)) * maxPull;
+            py = Math.max(-1, Math.min(1, dy)) * maxPull;
+            if (!raf) raf = requestAnimationFrame(apply);
+          };
+          const enter = () => host.classList.add('is-tracking');
+          const leave = () => {
+            host.classList.remove('is-tracking');
+            target.style.setProperty('--mx', '0px');
+            target.style.setProperty('--my', '0px');
+          };
+          host.addEventListener('pointerenter', enter);
+          host.addEventListener('pointermove', move, { passive: true });
+          host.addEventListener('pointerleave', leave);
+          target.addEventListener('focus', enter);   // keyboard users get the visual state without the pull
+          target.addEventListener('blur', leave);
+        });
+        reduce.addEventListener('change', () => {
+          if (reduce.matches) hosts.forEach((h) => {
+            const t = h.querySelector('.magnetic-target');
+            if (t) { t.style.removeProperty('--mx'); t.style.removeProperty('--my'); }
+          });
+        });
+      };
+      initMagnetic();
+    })();
+  </script>
+</body>
+</html>

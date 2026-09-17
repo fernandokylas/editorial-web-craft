@@ -1,0 +1,1231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meridian Private Office — Portfolio overview</title>
+  <style>
+    @layer base, layout, components, utilities;
+
+    /* ============================================================
+       1. TOKENS — the only place raw values live. Paper ground in
+       :root, obsidian ground re-mapped in .theme-inverted (on <body>).
+       Every text/background pair below was measured with
+       ground-inversion-guard/scripts/contrast.py.
+       ============================================================ */
+    :root {
+      /* grounds & text (paper) */
+      --bg-main: #fcfbf9;
+      --surface-card: #ffffff;
+      --surface-raised: #ffffff;
+      --text-main: #1a1a1a;
+      --text-body: #2c2c2c;
+      --text-small: #2c2c2c;
+      --text-muted: #555555;
+      --accent-solid: #0e6245;
+      --accent-text: #0e6245;
+      --accent-on-solid: #ffffff;
+      --rule: #e4e2dc;
+      --status-positive: #0e6245;
+      --status-warning: #8a5a00;
+      --status-neutral: #5b6270;
+
+      /* luminous edges (paper: debossed groove) */
+      --edge-stroke: 1px;
+      --edge-hi: rgb(255 255 255 / 0.7);
+      --edge-lo: rgb(0 0 0 / 0.07);
+      --edge-tint: rgb(14 98 69 / 0.10);
+      --edge-tint-hover: rgb(14 98 69 / 0.22);
+      --edge-blend: multiply;
+      --edge-solid: #e4e2dc;
+      --edge-functional: #8a8a86;          /* 3.35:1 on paper (WCAG 1.4.11) */
+      --panel-glass: rgb(252 251 249 / 0.85);
+      --hr-fade: rgb(0 0 0 / 0.12);
+
+      /* skeleton */
+      --skeleton-base: #eae9e6;
+      --skeleton-sheen: rgb(255 255 255 / 0.6);
+      --skeleton-radius: 4px;
+      --skeleton-appear-delay: 300ms;
+
+      /* shadows */
+      --shadow-rest: 0 1px 2px rgb(0 0 0 / 0.04);
+      --shadow-hover: 0 4px 12px rgb(0 0 0 / 0.08);
+      --shadow-menu: 0 12px 32px rgb(0 0 0 / 0.16);
+      --shadow-modal: 0 24px 64px rgb(0 0 0 / 0.28);
+      --backdrop: rgb(20 22 28 / 0.45);
+
+      /* type: display serif for H1 / KPI figures, system sans for UI */
+      --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+      --font-body: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-weight-display: 600;
+      --letter-spacing-display: -0.02em;
+      --line-height-display: 1.1;
+      --line-height-body: 1.6;
+      --font-size-meta: 0.75rem;
+      --letter-spacing-meta: 0.1em;
+
+      /* fluid sizes — derived with fluid-clamp-calculator/scripts/clamp.py (320 → 1200px) */
+      --fs-display: clamp(1.75rem, calc(1.386rem + 1.818vw), 2.75rem);
+      --fs-kpi: clamp(1.75rem, calc(1.568rem + 0.909vw), 2.25rem);
+      --fs-watermark: clamp(6rem, 18vw, 14rem);
+      --pad-page: clamp(1.5rem, calc(0.955rem + 2.727vw), 3rem);
+      --pad-x: clamp(1rem, 3vw, 2rem);
+      --pad-card: clamp(1.125rem, calc(0.989rem + 0.682vw), 1.5rem);
+      --gap-section: clamp(2rem, calc(1.455rem + 2.727vw), 3.5rem);
+      --gap-grid: clamp(1rem, calc(0.818rem + 0.909vw), 1.5rem);
+      --gap-rail: clamp(2rem, 5vw, 4rem);
+      --header-h: 4rem;
+      --radius: 10px;
+      --radius-pill: 999px;
+
+      /* motion physics (tactile-interaction-curves) */
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-out-small: cubic-bezier(0.25, 1, 0.5, 1);
+      --ease-in: cubic-bezier(0.5, 0, 0.75, 0);
+      --dur-in: 260ms;
+      --dur-out: 180ms;
+      --dur-press: 80ms;
+
+      /* magnetic field (magnetic-hitbox-warp) */
+      --magnet-reach: 2rem;
+      --magnet-pull: 6px;
+      --ease-track: cubic-bezier(0.25, 1, 0.2, 1);
+      --ease-recoil: linear(0, 0.4 8%, 0.85 18%, 1.08 30%, 0.98 44%, 1.01 58%, 1);
+
+      /* depth matrix (z-index-coordinate-matrix) */
+      --z-subground: -10;
+      --z-ground: 0;
+      --z-rail-sticky: 100;
+      --z-navigation: 200;
+      --z-disclosure: 300;
+      --z-modal: 400;
+      --z-critical: 500;
+    }
+
+    @layer base {
+      /* Obsidian ground: same token names, re-mapped. Accents become TEXT here. */
+      .theme-inverted {
+        --bg-main: #0b0c10;
+        --surface-card: #14161c;           /* tonal step; boundary carried by the luminous edge */
+        --surface-raised: #181a21;
+        --text-main: #f5f5f5;              /* 17.9:1 — soft white, no halation */
+        --text-body: #e0e0e0;              /* 14.8:1 */
+        --text-small: #dfdfdf;             /* 14.7:1 */
+        --text-muted: #b4b4b4;             /* 9.4:1 on ground, 8.7:1 on card (#a0a0a0 is 6.9:1 on card) */
+        --accent-solid: #d9b56a;           /* brass: FILL for the primary CTA only */
+        --accent-text: #e3c37a;            /* 11.5:1 — brass as text */
+        --accent-on-solid: #0b0c10;        /* 10.0:1 on the brass fill */
+        --rule: #2a2c33;
+        --status-positive: #4ade80;        /* 10.4:1 on card — well over the 3:1 UI floor */
+        --status-warning: #f5b544;         /* 10.0:1 */
+        --status-neutral: #8b93a7;         /* 5.9:1 */
+
+        --edge-stroke: 0.5px;              /* fiber line: true half-pixel on 2x, rounds to 1px on 1x */
+        --edge-hi: rgb(255 255 255 / 0.28);
+        --edge-lo: rgb(255 255 255 / 0.04);
+        --edge-tint: rgb(227 195 122 / 0.22);
+        --edge-tint-hover: rgb(227 195 122 / 0.45);
+        --edge-blend: plus-lighter;
+        --edge-solid: #2a2c33;
+        --edge-functional: #666a73;        /* 3.61:1 on ground, 3.34:1 on card */
+        --panel-glass: rgb(11 12 16 / 0.72);
+        --hr-fade: rgb(255 255 255 / 0.16);
+
+        --skeleton-base: #1f2127;
+        --skeleton-sheen: rgb(255 255 255 / 0.06);
+
+        --shadow-rest: 0 1px 2px rgb(0 0 0 / 0.3);
+        --shadow-hover: 0 6px 16px rgb(0 0 0 / 0.35);
+        --shadow-menu: 0 16px 40px rgb(0 0 0 / 0.55);
+        --shadow-modal: 0 32px 80px rgb(0 0 0 / 0.6);
+        --backdrop: rgb(4 5 8 / 0.62);
+
+        background: var(--bg-main);
+        color: var(--text-main);
+        /* Only on the dark ground: counteracts the over-bold glow of light-on-dark subpixel AA */
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+
+      *, *::before, *::after { box-sizing: border-box; }
+      * { margin: 0; padding: 0; }
+      html {
+        -webkit-text-size-adjust: 100%;
+        scrollbar-gutter: stable;
+        scroll-behavior: smooth;
+        scroll-padding-top: calc(var(--header-h) + 1rem);
+      }
+      body {
+        background: var(--bg-main);
+        color: var(--text-main);
+        font-family: var(--font-body);
+        font-size: 1rem;
+        line-height: var(--line-height-body);
+        padding: calc(var(--header-h) + var(--pad-page)) var(--pad-x) var(--pad-page);
+        min-height: 100vh;
+      }
+
+      h1, h2 {
+        font-family: var(--font-display);
+        font-weight: var(--font-weight-display);
+        letter-spacing: var(--letter-spacing-display);
+        line-height: var(--line-height-display);
+        color: var(--text-main);
+      }
+      h1 { font-size: var(--fs-display); }
+      h2 { font-size: 1.5rem; }
+      h3, h4 { font-family: var(--font-body); line-height: 1.3; }
+      h1, h2, h3, h4 { text-wrap: balance; }
+      p, li, dd, figcaption { text-wrap: pretty; }
+      p { max-width: 62ch; color: var(--text-body); }
+      a { color: var(--accent-text); text-underline-offset: 0.15em; }
+      button, input, select, textarea { font: inherit; color: inherit; }
+      ul, ol { list-style: none; }
+      svg { display: block; }
+    }
+
+    /* ============================================================
+       2. LAYOUT — header, ledger grid (rail + copy), card grid, footer
+       ============================================================ */
+    @layer layout {
+      .site-header {
+        position: fixed;
+        top: 0; left: 0; right: 0;
+        height: var(--header-h);
+        z-index: var(--z-navigation);
+        background: var(--panel-glass);
+        isolation: isolate;
+      }
+      .site-header::after {                /* fading hairline, not a wall */
+        content: "";
+        position: absolute;
+        left: 0; right: 0; bottom: 0;
+        height: var(--edge-stroke);
+        background: linear-gradient(90deg, transparent, var(--hr-fade) 12%, var(--hr-fade) 88%, transparent);
+        mix-blend-mode: var(--edge-blend);
+        pointer-events: none;
+      }
+      .site-header-inner {
+        max-width: 1200px;
+        height: 100%;
+        margin: 0 auto;
+        padding: 0 var(--pad-x);
+        display: flex;
+        align-items: center;
+        gap: clamp(0.75rem, 2vw, 1.5rem);
+      }
+      .site-nav { margin-left: auto; }
+      .site-nav ul { display: flex; align-items: center; gap: 0.25rem; }
+
+      /* The ledger: narrow sticky meta rail, wide working column */
+      .ledger {
+        display: grid;
+        grid-template-columns: minmax(180px, 1fr) minmax(0, 5fr);
+        gap: var(--gap-rail);
+        align-items: start;
+        width: 100%;
+        max-width: 1200px;
+        margin: 0 auto;
+        position: relative;
+        isolation: isolate;                 /* a room: the watermark sinks behind, nothing leaks out */
+      }
+      .rail {
+        position: sticky;
+        top: calc(var(--header-h) + 1.5rem);
+        z-index: var(--z-rail-sticky);
+        display: grid;
+        gap: 1rem;
+      }
+      .ledger-copy { position: relative; z-index: var(--z-ground); display: grid; gap: var(--gap-section); }
+      .ledger-watermark {
+        position: absolute;
+        right: -2vw;
+        top: -2.5rem;
+        z-index: var(--z-subground);
+        font-family: var(--font-display);
+        font-size: var(--fs-watermark);
+        font-weight: var(--font-weight-display);
+        letter-spacing: -0.04em;
+        line-height: 1;
+        color: var(--text-main);
+        opacity: 0.035;
+        pointer-events: none;
+        user-select: none;
+      }
+
+      .card-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: var(--gap-grid);
+        min-height: 26rem;                  /* reserved: two rows of cards at their loaded height */
+      }
+      .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; }
+
+      .site-footer {
+        margin-top: var(--gap-section);   /* no auto margins: a grid item with them centres at max-content width */
+        padding-top: 1.5rem;
+        display: grid;
+        gap: 1rem;
+      }
+      .footer-nav ul { display: flex; flex-wrap: wrap; gap: 0.25rem 1.25rem; }
+
+      @media (max-width: 960px) {
+        .card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); min-height: 39rem; }
+      }
+      @media (max-width: 720px) {
+        .ledger { grid-template-columns: 1fr; gap: 1.5rem; }
+        .rail { position: static; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: 0.75rem 1rem; }
+        .ledger-watermark { display: none; }
+        .site-header-inner { flex-wrap: wrap; align-items: center; row-gap: 0; padding-top: 0.5rem; }
+        .site-nav { order: 3; flex-basis: 100%; margin-left: 0; overflow-x: auto; }
+        .site-nav ul { gap: 0; }
+      }
+      @media (max-width: 600px) {
+        .card-grid { grid-template-columns: 1fr; min-height: 78rem; }
+        .section-head { flex-direction: column; align-items: flex-start; gap: 0.35rem; }
+      }
+    }
+    @media (max-width: 720px) {
+      :root { --header-h: 6.25rem; }
+    }
+
+    /* ============================================================
+       3. COMPONENTS
+       ============================================================ */
+    @layer components {
+      /* ---- Brand ---- */
+      .brand { display: inline-flex; align-items: center; gap: 0.6rem; color: var(--text-main); text-decoration: none; }
+      .brand-mark { width: 1.75rem; height: 1.75rem; color: var(--accent-text); }
+      .brand-name { font-size: 0.9375rem; font-weight: 600; letter-spacing: 0.01em; line-height: 1.2; white-space: nowrap; }
+      .brand-name small { display: block; font-family: var(--font-body); font-size: 0.75rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; line-height: 1.4; color: var(--text-muted); }
+
+      /* ---- Skip link ---- */
+      .skip-link {
+        position: absolute;
+        top: -100%; left: var(--pad-x);
+        z-index: var(--z-critical);
+        padding: 0.6rem 1rem 0.65rem;
+        background: var(--accent-solid);
+        color: var(--accent-on-solid);
+        border-radius: var(--radius-pill);
+        font-size: 0.875rem; font-weight: 600; letter-spacing: 0.02em; line-height: 1.4;
+        text-decoration: none;
+      }
+      .skip-link:focus-visible { top: 0.75rem; outline: 2px solid var(--accent-text); outline-offset: 3px; }
+
+      /* ---- Magnetic field + target (adapted from magnetic-hitbox-warp/assets/magnetic.css) ---- */
+      .magnetic { position: relative; display: inline-flex; isolation: isolate; }
+      .magnetic::before {                    /* the gravitational zone — enlarges the hover area, not the box */
+        content: "";
+        position: absolute;
+        inset: calc(var(--magnet-reach) * -1);
+        border-radius: inherit;
+        z-index: -1;
+      }
+      .magnetic-target {
+        position: relative;
+        transition: transform 450ms var(--ease-recoil),
+                    background-color 150ms linear,
+                    color 150ms linear,
+                    box-shadow 450ms var(--ease-track);
+        transform: translate3d(var(--mx, 0px), var(--my, 0px), 0) scale(var(--ms, 1));
+      }
+      @media (hover: hover) and (pointer: fine) {
+        .magnetic.is-tracking .magnetic-target {
+          --ms: 1.03;
+          transition: transform 150ms var(--ease-track),
+                      background-color 150ms linear,
+                      color 150ms linear,
+                      box-shadow 300ms var(--ease-track);
+        }
+        .magnetic.is-tracking .pill-primary { background: var(--accent-solid); color: var(--accent-on-solid); box-shadow: var(--shadow-hover); }
+        .magnetic.is-tracking .nav-link { background: var(--surface-raised); color: var(--text-main); }
+        .magnetic.is-tracking .icon-btn { background: var(--surface-raised); color: var(--text-main); }
+      }
+      .magnetic-target:active { --ms: 0.97; transition-duration: var(--dur-press); }
+
+      /* ---- Nav links ---- */
+      .nav-link {
+        display: inline-flex; align-items: center;
+        padding: 0.5rem 0.85rem 0.55rem;   /* optical: heavier bottom */
+        border-radius: var(--radius-pill);
+        font-size: 0.875rem; font-weight: 500; letter-spacing: 0.02em; line-height: 1.4;
+        color: var(--text-muted);
+        text-decoration: none;
+        white-space: nowrap;
+      }
+      .nav-link[aria-current="page"] { color: var(--text-main); }
+      .nav-link[aria-current="page"]::after {
+        content: ""; display: block; position: absolute; left: 0.85rem; right: 0.85rem; bottom: 0.2rem;
+        height: 1.5px; background: var(--accent-text); border-radius: 1px;
+      }
+      .nav-link:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; }
+
+      /* ---- Pills and buttons (tactile-interaction-curves) ---- */
+      .pill {
+        display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+        padding: 0.6rem 1.15rem 0.65rem;   /* optical: text mass sits at the baseline */
+        border: 0;
+        border-radius: var(--radius-pill);
+        font-size: 0.9375rem; font-weight: 600; letter-spacing: 0.01em; line-height: 1.2;
+        cursor: pointer;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+      .pill .icon { position: relative; top: -0.5px; }                 /* optical: cap-height alignment */
+      .pill-primary { background: var(--text-main); color: var(--bg-main); box-shadow: var(--shadow-rest); }
+      .pill-secondary { background: transparent; color: var(--text-main); border: 1px solid var(--edge-functional); }
+      .pill-primary.has-leading-icon { padding-left: 1rem; }              /* optical: icon side reads heavier */
+
+      .btn {                                                             /* non-magnetic buttons */
+        transition: transform var(--dur-out) var(--ease-out),
+                    box-shadow var(--dur-out) var(--ease-out),
+                    background-color 150ms linear,
+                    border-color 150ms linear;
+      }
+      @media (hover: hover) {
+        .btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-hover); transition-duration: var(--dur-in); }
+        .btn.pill-primary:hover { background: var(--accent-solid); color: var(--accent-on-solid); }
+        .btn.pill-secondary:hover { border-color: var(--accent-text); }
+      }
+      .btn:active { transform: translateY(0.5px) scale(0.97); box-shadow: var(--shadow-rest); transition-duration: var(--dur-press); }
+      .pill:focus-visible, .icon-btn:focus-visible, .menu-item:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; }
+
+      .icon-btn {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 2rem; height: 2rem;
+        border: 0; border-radius: var(--radius-pill);
+        background: transparent; color: var(--text-muted);
+        cursor: pointer;
+        transition: background-color 150ms linear, color 150ms linear;
+      }
+      .icon-btn.is-large { width: 2.25rem; height: 2.25rem; }
+      @media (hover: hover) {
+        .icon-btn:hover { background: var(--surface-raised); color: var(--text-main); }
+      }
+      .icon { width: 1em; height: 1em; display: inline-block; flex: none; }
+      .icon-sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+      /* ---- Meta voice (editorial-type-tokens + accessible-ink-scale) ---- */
+      .ui-metadata {
+        font-family: var(--font-body);
+        font-size: 0.75rem; font-weight: 600; letter-spacing: 0.1em; line-height: 1.4;
+        text-transform: uppercase;
+        color: var(--text-muted);
+      }
+      .lede { font-size: 1.0625rem; color: var(--text-body); margin-top: 0.75rem; }
+
+      /* ---- Rail (layout-editorial-rail) ---- */
+      .rail-label { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.08em; line-height: 1.4; text-transform: uppercase; color: var(--text-muted); max-width: none; }
+      .rail-value { font-size: 0.875rem; font-weight: 500; letter-spacing: 0.02em; line-height: 1.5; color: var(--text-small); margin-top: 0.15rem; max-width: none; }
+      .rail-metric { font-family: var(--font-display); font-size: 1.75rem; font-weight: 600; letter-spacing: -0.01em; line-height: 1.1; color: var(--accent-text); margin-top: 0.2rem; }
+      .rail-group { border-top: var(--edge-stroke) solid transparent; padding-top: 0.25rem; }
+      .rail-rule { border: 0; height: var(--edge-stroke); background: linear-gradient(90deg, var(--hr-fade), transparent); mix-blend-mode: var(--edge-blend); }
+
+      /* ---- Luminescent panel (adaptive-luminescent-border/assets/luminous-borders.css) ---- */
+      .luminescent-panel {
+        position: relative;
+        background: var(--panel-glass);
+        border-radius: var(--radius);
+        isolation: isolate;                 /* keeps the blend inside the panel */
+      }
+      .luminescent-panel::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        padding: var(--edge-stroke);
+        background: linear-gradient(135deg, var(--edge-hi) 0%, var(--edge-lo) 50%, var(--edge-tint) 100%);
+        /* keep only the ring: paint content-box, subtract it from the full box */
+        -webkit-mask: linear-gradient(white 0 0) content-box, linear-gradient(white 0 0);
+        -webkit-mask-composite: xor;
+                mask: linear-gradient(white 0 0) content-box exclude, linear-gradient(white 0 0);
+        mix-blend-mode: var(--edge-blend);
+        pointer-events: none;
+        transition: background-color 150ms linear;
+      }
+      .is-glass { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+      @supports not ((mask-composite: exclude) or (-webkit-mask-composite: xor)) {
+        .luminescent-panel { border: 1px solid var(--edge-solid); }
+        .luminescent-panel::after { display: none; }
+      }
+      @media (prefers-reduced-transparency: reduce) {
+        .is-glass { backdrop-filter: none; -webkit-backdrop-filter: none; background: var(--bg-main); }
+      }
+      .luminescent-rule {
+        border: 0;
+        height: var(--edge-stroke);
+        background: linear-gradient(90deg, transparent, var(--hr-fade) 15%, var(--hr-fade) 85%, transparent);
+        mix-blend-mode: var(--edge-blend);
+      }
+
+      /* ---- KPI cards ---- */
+      .kpi-card {
+        background: var(--surface-card);
+        padding: var(--pad-card);
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        min-height: 12rem;                  /* reserved at the loaded height (cls-dimension-anchor) */
+      }
+      @media (hover: hover) {
+        .kpi-card:hover { --edge-tint: var(--edge-tint-hover); --edge-hi: rgb(255 255 255 / 0.4); }
+      }
+      .card-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+      .card-title { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.1em; line-height: 1.4; text-transform: uppercase; color: var(--text-muted); }
+      .card-menu-btn { margin: -0.25rem -0.4rem -0.25rem 0; }            /* pulls the 32px hit area to the card edge without moving the title */
+      .card-body { display: grid; gap: 0.75rem; align-content: start; min-height: 9rem; }
+      .card-figure {
+        font-family: var(--font-display);
+        font-size: var(--fs-kpi);
+        font-weight: var(--font-weight-display);
+        letter-spacing: var(--letter-spacing-display);
+        line-height: 1.1;
+        color: var(--text-main);
+        font-variant-numeric: lining-nums tabular-nums;
+      }
+      .card-figure .unit { font-size: calc(var(--fs-kpi) * 0.6); font-weight: 600; letter-spacing: 0.02em; color: var(--text-muted); margin-left: 0.15em; }  /* 17–22px */
+      .card-copy { font-size: 0.875rem; font-weight: 500; letter-spacing: 0.02em; line-height: 1.5; color: var(--text-muted); min-height: 3.9375rem; }  /* three lines reserved */
+      .card-status { display: inline-flex; align-items: center; gap: 0.5rem; }
+      .status-dot {
+        width: 0.5625rem; height: 0.5625rem;                          /* optical: ~+12% over the 8px a square would get */
+        border-radius: 50%;
+        background: var(--dot, var(--status-neutral));
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--dot, var(--status-neutral)) 18%, transparent);
+        position: relative; top: -0.5px;                               /* optical: meets the cap-height of the label */
+        flex: none;
+      }
+      .status-dot--positive { --dot: var(--status-positive); }
+      .status-dot--warning  { --dot: var(--status-warning); }
+      .status-dot--neutral  { --dot: var(--status-neutral); }
+      .status-label { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.04em; line-height: 1.4; color: var(--text-small); }
+      .spark { width: 100%; height: 2rem; color: var(--accent-text); }
+      .card-error { display: grid; gap: 0.5rem; align-content: start; }
+      .card-error p { font-size: 0.875rem; font-weight: 500; letter-spacing: 0.02em; line-height: 1.5; color: var(--text-muted); }
+      .card-noscript { font-size: 0.875rem; font-weight: 500; letter-spacing: 0.02em; line-height: 1.5; color: var(--text-muted); }
+
+      /* ---- Skeleton engine (perceived-latency-mask/assets/skeleton.css) ---- */
+      .is-loading-state {                                              /* hides itself for 300ms so fast loads never flash */
+        opacity: 0;
+        animation: skeleton-appear 0s linear var(--skeleton-appear-delay) forwards;
+        display: grid; gap: 0.75rem; align-content: start;
+      }
+      @keyframes skeleton-appear { to { opacity: 1; } }
+      .skeleton-bar {
+        position: relative;
+        overflow: hidden;
+        background: var(--skeleton-base);
+        border-radius: var(--skeleton-radius);
+      }
+      .skeleton-bar::after {                                           /* sheen moved with transform — compositor only */
+        content: "";
+        position: absolute;
+        inset: 0;
+        transform: translateX(-100%);
+        background: linear-gradient(90deg, transparent 0%, var(--skeleton-sheen) 50%, transparent 100%);
+        animation: skeleton-sheen 1.6s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+      }
+      @keyframes skeleton-sheen { to { transform: translateX(100%); } }
+      /* stubs at the real type sizes, widths varied so they read as text, not a barcode */
+      .kpi-stub         { height: calc(var(--fs-kpi) * 1.1); width: 5ch; }
+      .spark-stub       { height: 2rem; width: 100%; }
+      .copy-stub        { display: grid; gap: 0.3125rem; align-content: start; min-height: 3.9375rem; }  /* = .card-copy reserved height */
+      .text-stub-full   { height: 1rem; width: 100%; }
+      .text-stub-long   { height: 1rem; width: 95%; }
+      .text-stub-partial{ height: 1rem; width: 62%; }
+      .status-stub      { height: 1.05rem; width: 7.5rem; }
+      .is-loaded-state  { animation: content-in 150ms linear; }        /* crossfade in place */
+      @keyframes content-in { from { opacity: 0; } }
+
+      /* ---- Dropdown menu: native popover, top layer, anchored to its button ---- */
+      .card-menu-btn { anchor-name: --card-menu; }
+      .menu {
+        position: fixed;
+        inset: auto;
+        top: calc(anchor(--card-menu bottom) + 0.375rem);
+        right: anchor(--card-menu right);
+        position-try-fallbacks: flip-block;
+        margin: 0;
+        min-width: 15rem;
+        padding: 0.375rem;
+        border-radius: var(--radius);
+        isolation: isolate;
+        z-index: var(--z-disclosure);       /* only matters in the no-popover fallback; the top layer ignores it */
+        background: var(--surface-raised);
+        color: var(--text-main);
+        border: 0;
+        box-shadow: var(--shadow-menu);
+        transform-origin: top right;
+        opacity: 0;
+        transform: translateY(-4px) scale(0.98);
+        transition: opacity 140ms linear, transform 140ms var(--ease-in),
+                    overlay 140ms allow-discrete, display 140ms allow-discrete;
+      }
+      .menu:popover-open { opacity: 1; transform: none; transition: opacity 150ms linear, transform 220ms var(--ease-out), overlay 220ms allow-discrete, display 220ms allow-discrete; }
+      .menu.is-open { opacity: 1; transform: none; }
+      @starting-style {
+        .menu:popover-open { opacity: 0; transform: translateY(-4px) scale(0.98); }
+      }
+      .menu-item {
+        display: flex; align-items: center; gap: 0.6rem;
+        width: 100%;
+        padding: 0.55rem 0.75rem 0.6rem;
+        border: 0; border-radius: 6px;
+        background: transparent; color: var(--text-small);
+        font-size: 0.875rem; font-weight: 500; letter-spacing: 0.02em; line-height: 1.4;
+        text-align: left; cursor: pointer;
+        transition: background-color 120ms linear, color 120ms linear;
+      }
+      .menu-item .icon { color: var(--text-muted); position: relative; top: -0.5px; }
+      @media (hover: hover) {
+        .menu-item:hover { background: color-mix(in srgb, var(--text-main) 8%, transparent); color: var(--text-main); }
+      }
+      .menu-item:active { background: color-mix(in srgb, var(--text-main) 12%, transparent); }
+      .menu-sep { border: 0; height: 1px; margin: 0.25rem 0.5rem; background: var(--rule); }
+
+      /* ---- Statement bar ---- */
+      .statement-bar {
+        background: var(--surface-card);
+        padding: var(--pad-card);
+        display: flex; flex-wrap: wrap; align-items: center; gap: 1rem 1.5rem;
+      }
+      .statement-bar .icon-lg { width: 2.25rem; height: 2.25rem; color: var(--accent-text); flex: none; }
+      .statement-bar-text { flex: 1 1 18rem; }
+      .statement-bar-text p { max-width: none; }
+      .statement-bar-text .title { font-weight: 600; color: var(--text-main); }
+      .statement-bar-text .meta { font-size: 0.875rem; font-weight: 500; letter-spacing: 0.02em; line-height: 1.5; color: var(--text-muted); }
+
+      /* ---- Modal: native <dialog> in the top layer ---- */
+      .statement-dialog {
+        position: fixed;
+        margin: auto;                       /* the * { margin: 0 } reset wipes the UA's dialog centring */
+        width: min(92vw, 36rem);
+        max-height: min(88vh, 44rem);
+        padding: 0;
+        border: 0;
+        border-radius: 14px;
+        background: var(--surface-raised);
+        color: var(--text-main);
+        box-shadow: var(--shadow-modal);
+        isolation: isolate;
+        opacity: 0;
+        transform: translateY(12px) scale(0.98);
+        transition: opacity 180ms linear, transform 180ms var(--ease-in),
+                    overlay 180ms allow-discrete, display 180ms allow-discrete;
+      }
+      .statement-dialog[open] { opacity: 1; transform: none; transition: opacity 200ms linear, transform 300ms var(--ease-out), overlay 300ms allow-discrete, display 300ms allow-discrete; }
+      @starting-style {
+        .statement-dialog[open] { opacity: 0; transform: translateY(12px) scale(0.98); }
+      }
+      .statement-dialog::backdrop { background: var(--backdrop); transition: opacity 200ms linear, overlay 200ms allow-discrete, display 200ms allow-discrete; opacity: 0; }
+      .statement-dialog[open]::backdrop { opacity: 1; }
+      @starting-style {
+        .statement-dialog[open]::backdrop { opacity: 0; }
+      }
+      .statement-dialog::after, .menu::after, .toast::after {       /* same luminous ring as the cards */
+        content: "";
+        position: absolute; inset: 0; border-radius: inherit;
+        padding: var(--edge-stroke);
+        background: linear-gradient(135deg, var(--edge-hi) 0%, var(--edge-lo) 50%, var(--edge-tint) 100%);
+        -webkit-mask: linear-gradient(white 0 0) content-box, linear-gradient(white 0 0);
+        -webkit-mask-composite: xor;
+                mask: linear-gradient(white 0 0) content-box exclude, linear-gradient(white 0 0);
+        mix-blend-mode: var(--edge-blend);
+        pointer-events: none;
+      }
+      .dialog-form { display: grid; gap: 1.25rem; padding: var(--pad-card) var(--pad-card) var(--pad-card); }
+      .dialog-head { display: grid; grid-template-columns: 1fr auto; gap: 0.5rem 1rem; align-items: start; }
+      .dialog-head h2 { font-size: 1.375rem; margin-top: 0.25rem; }
+      .dialog-head .magnetic { grid-row: 1 / span 2; }
+      .statement-lines { display: grid; grid-template-columns: 1fr auto; gap: 0.6rem 1.5rem; margin: 0; }
+      .statement-lines dt { font-size: 0.875rem; font-weight: 500; letter-spacing: 0.02em; line-height: 1.5; color: var(--text-muted); }
+      .statement-lines dd { font-variant-numeric: tabular-nums; text-align: right; color: var(--text-body); }
+      .statement-lines .total { color: var(--text-main); font-weight: 600; padding-top: 0.6rem; border-top: var(--edge-stroke) solid var(--rule); }
+      .dialog-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.6rem; }
+
+      /* ---- Toast ---- */
+      .toast {
+        position: fixed;
+        right: var(--pad-x); bottom: var(--pad-x);
+        z-index: var(--z-critical);
+        max-width: min(22rem, calc(100vw - 2 * var(--pad-x)));
+        display: flex; align-items: flex-start; gap: 0.75rem;
+        padding: 0.85rem 0.6rem 0.9rem 1rem;
+        border-radius: var(--radius);
+        background: var(--surface-raised);
+        color: var(--text-main);
+        box-shadow: var(--shadow-menu);
+        isolation: isolate;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(8px);
+        transition: opacity 150ms linear, transform 180ms var(--ease-in), visibility 0s linear 180ms;
+      }
+      .toast.is-visible { opacity: 1; visibility: visible; transform: none; transition: opacity 150ms linear, transform 220ms var(--ease-out), visibility 0s; }
+      .toast .icon-lg { width: 1.25rem; height: 1.25rem; color: var(--status-positive); flex: none; position: relative; top: 1px; }
+      .toast-text { font-size: 0.875rem; font-weight: 500; letter-spacing: 0.02em; line-height: 1.5; color: var(--text-small); max-width: none; flex: 1; }
+      .toast .icon-btn { margin: -0.35rem -0.1rem -0.35rem 0; }
+
+      /* ---- Footer ---- */
+      .fine-print { font-size: 0.75rem; font-weight: 500; letter-spacing: 0.02em; line-height: 1.5; color: var(--text-muted); max-width: 80ch; }
+      .footer-nav a { font-size: 0.75rem; font-weight: 500; letter-spacing: 0.02em; line-height: 1.5; color: var(--text-muted); text-decoration: none; }
+      .footer-nav a:hover, .footer-nav a:focus-visible { color: var(--text-main); text-decoration: underline; }
+      .footer-nav a:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; border-radius: 2px; }
+    }
+
+    /* ============================================================
+       4. UTILITIES — always win
+       ============================================================ */
+    @layer utilities {
+      .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+      .nowrap { white-space: nowrap; }
+      .numeric { font-variant-numeric: lining-nums tabular-nums; }
+      .overflow-anywhere { overflow-wrap: anywhere; }
+    }
+    /* Global reduced-motion filter (reduced-motion-enforcer): whitelist non-spatial properties.
+       Lives in the utilities layer so it beats every component without !important. */
+    @media (prefers-reduced-motion: reduce) {
+      @layer utilities {
+        *, *::before, *::after {
+          transition-property: opacity, color, background-color, border-color, box-shadow, fill, stroke, visibility;
+          transition-duration: 150ms;
+          transition-delay: 0s;
+          animation: none;
+          scroll-behavior: auto;
+          background-attachment: scroll;
+        }
+        html { scroll-behavior: auto; }
+        .magnetic-target, .magnetic.is-tracking .magnetic-target, .btn:hover, .btn:active { transform: none; }
+        .menu, .statement-dialog, .toast { transform: none; }
+        .is-loading-state { opacity: 1; animation: none; }             /* appear-delay is an animation; show the static skeleton at once */
+        .skeleton-bar::after { animation: none; }                       /* static grey — still clearly a placeholder */
+      }
+    }
+  </style>
+</head>
+<body class="theme-inverted">
+
+  <a class="skip-link" href="#main">Skip to portfolio</a>
+
+  <!-- Inline icon sprite (inline-svg-decorator/references/icon-set.md): define once, <use> many -->
+  <svg class="icon-sprite" aria-hidden="true" viewBox="0 0 0 0" focusable="false">
+    <symbol id="i-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h16M14 6l6 6-6 6"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+    <symbol id="i-document" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/></symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M8 3v4M16 3v4"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></symbol>
+    <symbol id="i-external" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M8 7h9v9"/></symbol>
+    <!-- not in the set: drawn on the same 24-grid, same 1.5 stroke, integer coordinates -->
+    <symbol id="i-more" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
+    <symbol id="i-scale" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M4 8h16M7 8l-3 6h6zM17 8l-3 6h6z"/></symbol>
+  </svg>
+
+  <header class="site-header is-glass">
+    <div class="site-header-inner">
+      <a class="brand" href="#overview" aria-label="Meridian Private Office — home">
+        <!-- placeholder mark: two overlapping forms on a 32-grid, currentColor -->
+        <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+          <circle cx="13" cy="16" r="9" fill="none" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M16 7v18M16 7l10 9-10 9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+        </svg>
+        <span class="brand-name">Meridian<small>Private Office</small></span>
+      </a>
+
+      <nav class="site-nav" aria-label="Primary">
+        <ul>
+          <li><span class="magnetic" data-magnetic="4"><a class="nav-link magnetic-target" href="#overview" aria-current="page">Overview</a></span></li>
+          <li><span class="magnetic" data-magnetic="4"><a class="nav-link magnetic-target" href="#positions">Holdings</a></span></li>
+          <li><span class="magnetic" data-magnetic="4"><a class="nav-link magnetic-target" href="#statement">Reporting</a></span></li>
+          <li><span class="magnetic" data-magnetic="4"><a class="nav-link magnetic-target" href="#documents">Documents</a></span></li>
+        </ul>
+      </nav>
+
+      <span class="magnetic" data-magnetic="6">
+        <button class="pill pill-primary magnetic-target" type="button" data-action="book-review">
+          Book review
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#i-arrow"/></svg>
+        </button>
+      </span>
+    </div>
+  </header>
+
+  <main id="main" class="ledger">
+    <p class="ledger-watermark" aria-hidden="true">MPO</p>
+
+    <aside class="rail" aria-label="Client summary">
+      <div class="rail-group">
+        <p class="rail-label">Client</p>
+        <p class="rail-value">The Harcourt Family Trust</p>
+      </div>
+      <div class="rail-group">
+        <p class="rail-label">Relationship manager</p>
+        <p class="rail-value">Eleanor Vance</p>
+      </div>
+      <div class="rail-group">
+        <p class="rail-label">Valuation as at</p>
+        <p class="rail-value"><span class="nowrap">16 Sep 2026</span>, close</p>
+      </div>
+      <div class="rail-group">
+        <p class="rail-label">Net assets</p>
+        <p class="rail-metric numeric">£24.6m</p>
+        <p class="rail-value">GBP reporting basis</p>
+      </div>
+      <div class="rail-group">
+        <p class="rail-label">Mandate</p>
+        <p class="rail-value">Balanced growth, discretionary</p>
+      </div>
+    </aside>
+
+    <div class="ledger-copy">
+      <div id="overview">
+        <p class="ui-metadata">Portfolio overview · <span class="nowrap">Q3 2026</span></p>
+        <h1>Good afternoon, Mr&nbsp;Harcourt</h1>
+        <p class="lede">The portfolio finished last week at <span class="nowrap">£24.6&#8239;million</span>, up <span class="nowrap">1.2&#8239;%</span> on the month. Equities have drifted above target after August's rally, so a rebalance is queued for your sign-off before the annual review on <span class="nowrap">2 October</span>.</p>
+      </div>
+
+      <section id="positions" aria-labelledby="positions-title">
+        <div class="section-head">
+          <h2 id="positions-title">Positions at a glance</h2>
+          <p class="ui-metadata">Live · refreshed 2 min ago</p>
+        </div>
+
+        <div class="card-grid">
+
+          <!-- Card 1: allocation — carries the "…" menu -->
+          <article class="kpi-card luminescent-panel" data-card="allocation" aria-busy="true">
+            <div class="card-head">
+              <h3 class="card-title">Allocation</h3>
+              <button class="icon-btn card-menu-btn" type="button" popovertarget="menu-allocation" aria-label="More actions for allocation">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#i-more"/></svg>
+              </button>
+              <div id="menu-allocation" class="menu" popover>
+                <button class="menu-item" type="button" data-action="menu" data-label="Rebalance to strategic target">
+                  <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#i-scale"/></svg>Rebalance to strategic target
+                </button>
+                <button class="menu-item" type="button" data-action="menu" data-label="Allocation report download">
+                  <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#i-document"/></svg>Download allocation report
+                </button>
+                <hr class="menu-sep">
+                <button class="menu-item" type="button" data-action="menu" data-label="Strategic target change">
+                  <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#i-external"/></svg>Propose a new strategic target
+                </button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="is-loading-state" aria-hidden="true">
+                <div class="skeleton-bar kpi-stub"></div>
+                <div class="copy-stub">
+                  <div class="skeleton-bar text-stub-full"></div>
+                  <div class="skeleton-bar text-stub-long"></div>
+                  <div class="skeleton-bar text-stub-partial"></div>
+                </div>
+                <div class="skeleton-bar status-stub"></div>
+              </div>
+              <noscript><p class="card-noscript">Live figures need JavaScript. Your latest statement is available under Documents.</p></noscript>
+            </div>
+          </article>
+
+          <!-- Card 2: performance -->
+          <article class="kpi-card luminescent-panel" data-card="performance" aria-busy="true">
+            <div class="card-head">
+              <h3 class="card-title">Performance</h3>
+            </div>
+            <div class="card-body">
+              <div class="is-loading-state" aria-hidden="true">
+                <div class="skeleton-bar kpi-stub"></div>
+                <div class="skeleton-bar spark-stub"></div>
+                <div class="copy-stub">
+                  <div class="skeleton-bar text-stub-full"></div>
+                  <div class="skeleton-bar text-stub-long"></div>
+                  <div class="skeleton-bar text-stub-partial"></div>
+                </div>
+                <div class="skeleton-bar status-stub"></div>
+              </div>
+            </div>
+          </article>
+
+          <!-- Card 3: cash -->
+          <article class="kpi-card luminescent-panel" data-card="cash" aria-busy="true">
+            <div class="card-head">
+              <h3 class="card-title">Cash</h3>
+            </div>
+            <div class="card-body">
+              <div class="is-loading-state" aria-hidden="true">
+                <div class="skeleton-bar kpi-stub"></div>
+                <div class="copy-stub">
+                  <div class="skeleton-bar text-stub-full"></div>
+                  <div class="skeleton-bar text-stub-long"></div>
+                  <div class="skeleton-bar text-stub-partial"></div>
+                </div>
+                <div class="skeleton-bar status-stub"></div>
+              </div>
+            </div>
+          </article>
+
+          <!-- Card 4: fees -->
+          <article class="kpi-card luminescent-panel" data-card="fees" aria-busy="true">
+            <div class="card-head">
+              <h3 class="card-title">Fees</h3>
+            </div>
+            <div class="card-body">
+              <div class="is-loading-state" aria-hidden="true">
+                <div class="skeleton-bar kpi-stub"></div>
+                <div class="copy-stub">
+                  <div class="skeleton-bar text-stub-full"></div>
+                  <div class="skeleton-bar text-stub-long"></div>
+                  <div class="skeleton-bar text-stub-partial"></div>
+                </div>
+                <div class="skeleton-bar status-stub"></div>
+              </div>
+            </div>
+          </article>
+
+          <!-- Card 5: documents -->
+          <article class="kpi-card luminescent-panel" id="documents" data-card="documents" aria-busy="true">
+            <div class="card-head">
+              <h3 class="card-title">Documents</h3>
+            </div>
+            <div class="card-body">
+              <div class="is-loading-state" aria-hidden="true">
+                <div class="skeleton-bar kpi-stub"></div>
+                <div class="copy-stub">
+                  <div class="skeleton-bar text-stub-full"></div>
+                  <div class="skeleton-bar text-stub-long"></div>
+                  <div class="skeleton-bar text-stub-partial"></div>
+                </div>
+                <div class="skeleton-bar status-stub"></div>
+              </div>
+            </div>
+          </article>
+
+          <!-- Card 6: next steps -->
+          <article class="kpi-card luminescent-panel" data-card="next" aria-busy="true">
+            <div class="card-head">
+              <h3 class="card-title">Next steps</h3>
+            </div>
+            <div class="card-body">
+              <div class="is-loading-state" aria-hidden="true">
+                <div class="skeleton-bar kpi-stub"></div>
+                <div class="copy-stub">
+                  <div class="skeleton-bar text-stub-full"></div>
+                  <div class="skeleton-bar text-stub-long"></div>
+                  <div class="skeleton-bar text-stub-partial"></div>
+                </div>
+                <div class="skeleton-bar status-stub"></div>
+              </div>
+            </div>
+          </article>
+
+        </div>
+      </section>
+
+      <section id="statement" aria-labelledby="statement-title-section">
+        <div class="section-head">
+          <h2 id="statement-title-section">Quarterly statement</h2>
+          <p class="ui-metadata">Issued <span class="nowrap">14 Jul 2026</span></p>
+        </div>
+        <div class="statement-bar luminescent-panel">
+          <svg class="icon-lg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#i-document"/></svg>
+          <div class="statement-bar-text">
+            <p class="title"><span class="nowrap">Q2 2026</span> statement — <span class="nowrap">1 Apr</span> to <span class="nowrap">30 Jun 2026</span></p>
+            <p class="meta">Twelve pages · consolidated across custody, private markets and cash · next statement due <span class="nowrap">14 Oct 2026</span></p>
+          </div>
+          <button class="pill pill-secondary btn" type="button" data-action="open-statement">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#i-external"/></svg>
+            View statement
+          </button>
+        </div>
+      </section>
+
+      <footer class="site-footer">
+        <hr class="luminescent-rule">
+        <p class="fine-print">Meridian Private Office LLP is a fictional entity created for this design prototype. Figures are illustrative, shown net of fees in sterling, and do not constitute investment advice or an offer to transact. Valuations as at close of business on <span class="nowrap">16 September 2026</span>; unlisted holdings are valued quarterly and may be up to <span class="nowrap">90 days</span> in arrears. Capital at risk.</p>
+        <nav class="footer-nav" aria-label="Legal">
+          <ul>
+            <li><a href="/legal/privacy">Privacy notice</a></li>
+            <li><a href="/legal/terms">Terms of business</a></li>
+            <li><a href="/legal/complaints">Complaints</a></li>
+            <li><a href="/legal/accessibility">Accessibility statement</a></li>
+          </ul>
+        </nav>
+      </footer>
+    </div>
+  </main>
+
+  <!-- Modal: native dialog — focus trap, Esc, inert background and ::backdrop for free -->
+  <dialog class="statement-dialog" id="statement-dialog" aria-labelledby="statement-dialog-title">
+    <form method="dialog" class="dialog-form">
+      <div class="dialog-head">
+        <p class="ui-metadata">Quarterly statement · <span class="nowrap">Q2 2026</span></p>
+        <span class="magnetic" data-magnetic="4">
+          <button class="icon-btn is-large magnetic-target" type="submit" value="close" aria-label="Close statement">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#i-close"/></svg>
+          </button>
+        </span>
+        <h2 id="statement-dialog-title">The Harcourt Family Trust, <span class="nowrap">1 April</span> to <span class="nowrap">30 June 2026</span></h2>
+      </div>
+      <dl class="statement-lines">
+        <dt>Opening value, <span class="nowrap">1 Apr</span></dt><dd class="numeric">£23,412,600</dd>
+        <dt>Net contributions</dt><dd class="numeric">£250,000</dd>
+        <dt>Investment return</dt><dd class="numeric">£481,900</dd>
+        <dt>Income received</dt><dd class="numeric">£96,300</dd>
+        <dt>Fees and charges</dt><dd class="numeric">−£39,750</dd>
+        <dt class="total">Closing value, <span class="nowrap">30 Jun</span></dt><dd class="numeric total">£24,201,050</dd>
+      </dl>
+      <p class="fine-print">Time-weighted return for the quarter was <span class="nowrap">2.1&#8239;%</span> against <span class="nowrap">1.6&#8239;%</span> for the composite benchmark. Full holdings, transactions and the fee schedule are in the PDF.</p>
+      <div class="dialog-actions">
+        <button class="pill pill-secondary btn" type="submit" value="close">Close</button>
+        <button class="pill pill-primary btn has-leading-icon" type="submit" value="download">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#i-document"/></svg>
+          Download PDF
+        </button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Toast: the live region is always in the DOM so announcements are reliable -->
+  <div class="toast" id="toast">
+    <svg class="icon-lg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#i-check"/></svg>
+    <p class="toast-text" role="status" aria-live="polite" id="toast-text"></p>
+    <button class="icon-btn" type="button" data-action="toast-dismiss" aria-label="Dismiss notification">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#i-close"/></svg>
+    </button>
+  </div>
+
+  <!-- Skeleton template for the retry path -->
+  <template id="card-skeleton">
+    <div class="is-loading-state" aria-hidden="true">
+      <div class="skeleton-bar kpi-stub"></div>
+      <div class="copy-stub">
+        <div class="skeleton-bar text-stub-full"></div>
+        <div class="skeleton-bar text-stub-long"></div>
+        <div class="skeleton-bar text-stub-partial"></div>
+      </div>
+      <div class="skeleton-bar status-stub"></div>
+    </div>
+  </template>
+
+  <script>
+    // One IIFE: state, delegated events, init on DOMContentLoaded.
+    (() => {
+      'use strict';
+      const NNBSP = ' '; // narrow no-break space before units and between number + unit
+
+      /* ---------- simulated portfolio service (1.2s round trip) ---------- */
+      const PORTFOLIO = {
+        allocation:  { figure: '58.4<span class="unit">%</span>', copy: `Equities weight, ${'3.4' + NNBSP + 'pts'} above the ${'55' + NNBSP + '%'} strategic target after August's rally.`, status: 'warning',  label: 'Rebalance due' },
+        performance: { figure: '+7.9<span class="unit">%</span>', copy: 'Year to date, net of all fees. The composite benchmark returned +6.1 % over the same period.', status: 'positive', label: 'Ahead of benchmark',
+                       spark: [26, 22, 24, 18, 21, 15, 17, 11, 13, 8, 10, 6] },
+        cash:        { figure: '£1.24<span class="unit">m</span>', copy: `${'5.0' + NNBSP + '%'} of net assets across GBP, USD and EUR; £310k earmarked for October capital calls.`, status: 'neutral',  label: 'Within policy range' },
+        fees:        { figure: '£41,850', copy: 'Q3 management and custody fees accrued to date, invoiced on <span class="nowrap">30 Sep</span>.', status: 'neutral',  label: 'Invoice pending' },
+        documents:   { figure: '3', copy: 'New since <span class="nowrap">2 Sep</span>: revised investment policy statement, H1 tax pack, custody addendum.', status: 'warning',  label: 'One signature required' },
+        next:        { figure: '<span class="nowrap">2 Oct</span>', copy: 'Annual review with Eleanor Vance, 10:30 at Berkeley Square. The agenda circulates one week before.', status: 'positive', label: 'Confirmed' },
+      };
+      const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+      const fetchPortfolio = () => sleep(1200).then(() => PORTFOLIO);
+      const withTimeout = (p, ms) => Promise.race([p, sleep(ms).then(() => { throw new Error('timeout'); })]);
+
+      const state = { loading: false, toastTimer: 0 };
+      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+      const $ = (sel, root = document) => root.querySelector(sel);
+      const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+
+      /* ---------- rendering ---------- */
+      function sparkline(points) {
+        const step = 120 / (points.length - 1);
+        const pts = points.map((y, i) => `${Math.round(i * step)},${y}`).join(' ');
+        return `<svg class="spark" viewBox="0 0 120 32" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+          <polyline points="${pts}" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+        </svg>`;
+      }
+      function renderCard(d) {
+        const el = document.createElement('div');
+        el.className = 'card-content is-loaded-state';
+        el.style.display = 'grid';
+        el.style.gap = '0.75rem';
+        el.innerHTML = `
+          <p class="card-figure">${d.figure}</p>
+          ${d.spark ? sparkline(d.spark) : ''}
+          <p class="card-copy">${d.copy}</p>
+          <p class="card-status"><span class="status-dot status-dot--${d.status}" aria-hidden="true"></span><span class="status-label"><span class="sr-only">Status: </span>${d.label}</span></p>`;
+        return el;
+      }
+      function renderError() {
+        const el = document.createElement('div');
+        el.className = 'card-error is-loaded-state';
+        el.innerHTML = `
+          <p>We couldn't reach the valuation service. Nothing has changed on your account.</p>
+          <p><button class="pill pill-secondary btn" type="button" data-action="retry">Try again</button></p>`;
+        return el;
+      }
+
+      /* ---------- the swap (perceived-latency-mask/references/recipes.md) ---------- */
+      async function loadCards() {
+        if (state.loading) return;
+        state.loading = true;
+        const cards = $$('.kpi-card');
+        cards.forEach((c) => c.setAttribute('aria-busy', 'true'));
+        const shownAt = performance.now();
+        try {
+          const data = await withTimeout(fetchPortfolio(), 10000);
+          // If the skeleton became visible (after the 300ms appear delay), hold it ≥400ms so it never flickers
+          const visibleFor = performance.now() - shownAt - 300;
+          if (visibleFor > 0 && visibleFor < 400) await sleep(400 - visibleFor);
+          cards.forEach((card) => {
+            const slot = $('.is-loading-state, .card-content, .card-error', card);
+            slot.replaceWith(renderCard(data[card.dataset.card]));
+          });
+        } catch (err) {
+          cards.forEach((card) => $('.is-loading-state, .card-content, .card-error', card).replaceWith(renderError()));
+        } finally {
+          cards.forEach((c) => c.setAttribute('aria-busy', 'false'));
+          state.loading = false;
+        }
+      }
+      function retry() {
+        const tpl = $('#card-skeleton');
+        $$('.kpi-card').forEach((card) => {
+          const slot = $('.card-content, .card-error', card);
+          if (slot) slot.replaceWith(tpl.content.cloneNode(true));
+        });
+        loadCards();
+      }
+
+      /* ---------- toast ---------- */
+      const toast = $('#toast');
+      const toastText = $('#toast-text');
+      function showToast(message) {
+        clearTimeout(state.toastTimer);
+        toastText.textContent = message;
+        toast.classList.add('is-visible');
+        state.toastTimer = setTimeout(hideToast, 6000);
+      }
+      function hideToast() {
+        clearTimeout(state.toastTimer);
+        toast.classList.remove('is-visible');
+      }
+
+      /* ---------- dialog ---------- */
+      const dialog = $('#statement-dialog');
+      dialog.addEventListener('close', () => {
+        if (dialog.returnValue === 'download') {
+          showToast('Q2 2026 statement (PDF, 1.8 MB) has been sent to your secure inbox.');
+        } else {
+          showToast('Statement closed. It remains available under Documents.');
+        }
+        dialog.returnValue = '';
+      });
+
+      /* ---------- popover menu: CSS anchor positioning, JS fallback ---------- */
+      const menu = $('#menu-allocation');
+      const menuBtn = $('[popovertarget="menu-allocation"]');
+      const supportsPopover = 'popover' in HTMLElement.prototype;
+      const supportsAnchor = CSS.supports('anchor-name: --x') && CSS.supports('top: anchor(bottom)');
+      function placeMenu() {
+        const r = menuBtn.getBoundingClientRect();
+        menu.style.top = `${r.bottom + 6}px`;
+        menu.style.right = `${document.documentElement.clientWidth - r.right}px`;
+      }
+      if (supportsPopover) {
+        if (!supportsAnchor) {
+          menu.addEventListener('toggle', (e) => { if (e.newState === 'open') placeMenu(); });
+        }
+      } else {
+        // Very old engines: hand-rolled open/close with the same light-dismiss behaviour
+        menu.hidden = true;
+        menuBtn.setAttribute('aria-expanded', 'false');
+        const closeMenu = () => { menu.hidden = true; menu.classList.remove('is-open'); menuBtn.setAttribute('aria-expanded', 'false'); };
+        menuBtn.addEventListener('click', () => {
+          const open = menu.hidden;
+          if (open) { menu.hidden = false; placeMenu(); menu.classList.add('is-open'); menuBtn.setAttribute('aria-expanded', 'true'); }
+          else closeMenu();
+        });
+        document.addEventListener('click', (e) => { if (!menu.hidden && !menu.contains(e.target) && e.target !== menuBtn) closeMenu(); });
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
+      }
+      function closeMenuAny() {
+        if (supportsPopover) { if (menu.matches(':popover-open')) menu.hidePopover(); }
+        else { menu.hidden = true; menu.classList.remove('is-open'); }
+      }
+
+      /* ---------- delegated actions ---------- */
+      document.body.addEventListener('click', (e) => {
+        const trigger = e.target.closest('[data-action]');
+        if (!trigger) return;
+        switch (trigger.dataset.action) {
+          case 'open-statement':
+            dialog.showModal();
+            break;
+          case 'book-review':
+            showToast('Review request sent to Eleanor Vance. Three slots will be offered by tomorrow.');
+            break;
+          case 'menu':
+            closeMenuAny();
+            showToast(`${trigger.dataset.label} — request logged for Eleanor Vance.`);
+            break;
+          case 'toast-dismiss':
+            hideToast();
+            break;
+          case 'retry':
+            retry();
+            break;
+          default:
+            break;
+        }
+      });
+
+      /* ---------- magnetic hitbox (magnetic-hitbox-warp/assets/magnetic.js) ---------- */
+      function initMagnetic(root = document) {
+        const fine = matchMedia('(hover: hover) and (pointer: fine)');
+        if (!fine.matches) return;
+        const hosts = root.querySelectorAll('.magnetic');
+        hosts.forEach((host) => {
+          const target = host.querySelector('.magnetic-target') || host.firstElementChild;
+          if (!target) return;
+          const maxPull = parseFloat(host.dataset.magnetic) || 6;
+          let raf = 0, px = 0, py = 0;
+          const move = (e) => {
+            if (reduceMotion.matches) return;
+            const r = host.getBoundingClientRect();
+            const reach = parseFloat(getComputedStyle(host).getPropertyValue('--magnet-reach')) * 16 || 32;
+            const dx = (e.clientX - (r.left + r.width / 2)) / (r.width / 2 + reach);
+            const dy = (e.clientY - (r.top + r.height / 2)) / (r.height / 2 + reach);
+            px = Math.max(-1, Math.min(1, dx)) * maxPull;
+            py = Math.max(-1, Math.min(1, dy)) * maxPull;
+            if (!raf) raf = requestAnimationFrame(apply);
+          };
+          const apply = () => {
+            raf = 0;
+            target.style.setProperty('--mx', `${px.toFixed(2)}px`);
+            target.style.setProperty('--my', `${py.toFixed(2)}px`);
+          };
+          const enter = () => host.classList.add('is-tracking');
+          const leave = () => {
+            host.classList.remove('is-tracking');
+            target.style.setProperty('--mx', '0px');
+            target.style.setProperty('--my', '0px');
+          };
+          host.addEventListener('pointerenter', enter);
+          host.addEventListener('pointermove', move, { passive: true });
+          host.addEventListener('pointerleave', leave);
+          target.addEventListener('focus', enter);   // keyboard users get the visual state without the pull
+          target.addEventListener('blur', leave);
+        });
+        reduceMotion.addEventListener('change', () => {
+          if (reduceMotion.matches) hosts.forEach((h) => {
+            const t = h.querySelector('.magnetic-target');
+            if (t) { t.style.removeProperty('--mx'); t.style.removeProperty('--my'); }
+          });
+        });
+      }
+
+      /* ---------- init ---------- */
+      document.addEventListener('DOMContentLoaded', () => {
+        initMagnetic();
+        loadCards();
+      });
+    })();
+  </script>
+</body>
+</html>

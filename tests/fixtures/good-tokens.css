@@ -1,0 +1,7 @@
+/* expected: ink OK (var() resolution), layers OK */
+@layer base, layout, components, utilities;
+:root { --fs-meta: 0.75rem; --ls-meta: 0.12em; }
+@layer components {
+  .ui-metadata { font-size: var(--fs-meta); letter-spacing: var(--ls-meta); text-transform: uppercase; font-weight: 600; line-height: 1.4; }
+  .m { -webkit-mask: linear-gradient(#fff 0 0) content-box; }
+}

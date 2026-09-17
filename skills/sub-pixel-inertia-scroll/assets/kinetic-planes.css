@@ -1,0 +1,74 @@
+/* Kinetic planes — parallax and scroll-cued arrivals on the native scroll track.
+   Partial: host declares `@layer base, layout, components, utilities;` first.
+   Planes use CSS scroll-driven animations (Chrome 115+, Safari 26+, Firefox behind flag);
+   elsewhere they simply sit still — an acceptable degrade. */
+
+:root {
+  --ease-rest: cubic-bezier(0.1, 0.9, 0.2, 1);   /* heavy tail: fast in, long glide to a stop */
+  --dur-rest: 900ms;
+  --plane-bg-factor: 0.3;                       /* background drifts at 30% of scroll */
+  --plane-mid-factor: 0.6;
+}
+
+@layer components {
+  /* A section that hosts layered planes */
+  .kinetic-section {
+    position: relative;
+    overflow: clip;                              /* clip, not hidden: no scroll container created */
+    isolation: isolate;
+  }
+
+  /* Decorative background plane: giant watermark type, drifts slower than content */
+  .parallax-meta-bg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    font-family: var(--font-display);
+    font-size: clamp(8rem, 20vw, 18rem);
+    font-weight: 900;
+    line-height: 1;
+    color: var(--text-main);
+    opacity: 0.06;
+    user-select: none;
+    /* Moves with scroll at a reduced factor: native scroll drives it, no JS */
+    animation: plane-drift linear both;
+    animation-timeline: view();
+    animation-range: entry 0% exit 100%;
+    --drift: calc(-40vh * var(--plane-bg-factor));
+  }
+  .parallax-meta-mid { --drift: calc(-40vh * var(--plane-mid-factor)); }
+  /* Content scrolls up; the plane lags by moving DOWN relative to it (from −drift to +drift). */
+  @keyframes plane-drift {
+    from { transform: translateY(var(--drift)); }
+    to   { transform: translateY(calc(var(--drift) * -1)); }
+  }
+
+  /* Foreground content: true anchor velocity — no transform, it just scrolls */
+  .kinetic-content { position: relative; z-index: 1; }
+
+  /* Scroll-cued arrival: fades/slides into place with a heavy-tailed rest curve.
+     Toggle `.is-in` from an IntersectionObserver (see inertia-planes.js) */
+  /* Hidden start state only when a script can run; with JS off, content is simply there */
+  @media (scripting: enabled) {
+    .arrive {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity var(--dur-rest) linear,
+                  transform var(--dur-rest) var(--ease-rest);
+    }
+    .arrive.is-in { opacity: 1; transform: none; }
+  }
+  .arrive:nth-child(2) { transition-delay: 60ms; }
+  .arrive:nth-child(3) { transition-delay: 120ms; }
+
+  /* Scroll-snap presentation decks: native snap, gentle — no transform canvas */
+  .deck { scroll-snap-type: y proximity; overflow-y: auto; height: 100dvh; scroll-behavior: smooth; }
+  .deck > section { scroll-snap-align: start; min-height: 100dvh; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .parallax-meta-bg, .parallax-meta-mid { animation: none; transform: none; }
+    .arrive { opacity: 1; transform: none; transition: none; }
+    .deck { scroll-behavior: auto; scroll-snap-type: none; }
+  }
+}

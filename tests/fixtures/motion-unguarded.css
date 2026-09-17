@@ -1,0 +1,3 @@
+/* expected: motion FAIL */
+.card { transition: transform 300ms ease; }
+.card:hover { transform: translateY(-4px); }

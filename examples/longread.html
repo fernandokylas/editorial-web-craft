@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="How mid-market CFOs are rethinking cash: the return of the 13-week forecast, working capital measured in days, and the spreadsheet that became the most important document in the building.">
+  <title>The Quiet Ledger — Meridian Review</title>
+  <style>
+    @layer base, layout, components, utilities;
+
+    /* ------------------------------------------------------------------
+       1. Tokens — the only place raw values live (unlayered on purpose)
+       ------------------------------------------------------------------ */
+    :root {
+      /* Paper ground (ground-inversion-guard) — every pair measured with contrast.py */
+      --bg-main: #fcfbf9;
+      --bg-paper: #fcfbf9;            /* fixed reference to the paper colour, survives inversion */
+      --surface: #f3f1ec;
+      --text-main: #1a1a1a;           /* 16.8:1 */
+      --text-body: #1a1a1a;
+      --text-muted: #555555;          /*  7.2:1 — the muted floor */
+      --accent-solid: #0e6245;        /* fills, rules */
+      --accent-text: #0e6245;         /*  7.1:1 — same green also works as text on paper */
+      --accent-on-solid: #ffffff;     /*  7.4:1 on the green fill */
+      --rule: #e4e2dc;
+      --watermark-alpha: 0.06;
+
+      /* Edges (adaptive-luminescent-border) — groove on paper */
+      --edge-stroke: 1px;
+      --edge-hi: rgb(255 255 255 / 0.7);
+      --edge-lo: rgb(0 0 0 / 0.07);
+      --edge-tint: rgb(14 98 69 / 0.10);
+      --edge-blend: multiply;
+      --edge-functional: #8a8a86;     /* 3.35:1 — functional boundaries only */
+      --hr-fade: rgb(0 0 0 / 0.12);
+
+      /* Type (editorial-type-tokens, system-only pair from pairings.md) */
+      --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+      --font-body: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-weight-display: 700;
+      --letter-spacing-display: -0.025em;
+      --line-height-display: 1.08;
+      --font-weight-body-regular: 400;
+      --font-weight-body-bold: 600;
+      --line-height-body: 1.6;
+
+      /* Fluid sizes (fluid-clamp-calculator/scripts/clamp.py, 320 → 1440) */
+      --fs-body: 1.0625rem;
+      --fs-display: clamp(2.75rem, calc(1.679rem + 5.357vw), 6.5rem);
+      --fs-h2: clamp(1.75rem, calc(1.464rem + 1.429vw), 2.75rem);
+      --fs-quote: clamp(1.5rem, calc(1.286rem + 1.071vw), 2.25rem);
+      --fs-dek: clamp(1.125rem, calc(1.018rem + 0.536vw), 1.5rem);
+      --fs-watermark: clamp(10rem, calc(5.429rem + 22.857vw), 26rem);
+      --pad-band: clamp(4rem, calc(2.571rem + 7.143vw), 9rem);
+      --gap-rail: clamp(2rem, calc(1.143rem + 4.286vw), 5rem);
+      --measure: 62ch;
+
+      /* Motion (tactile-interaction-curves + sub-pixel-inertia-scroll) */
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-rest: cubic-bezier(0.1, 0.9, 0.2, 1);
+      --dur-in: 260ms;
+      --dur-out: 180ms;
+      --dur-press: 80ms;
+      --plane-bg-factor: 0.3;         /* documented velocity factor of the watermark plane */
+      --plane-lag: 16vh;              /* how far the plane falls behind the copy across its view range */
+
+      /* Depth (z-index-coordinate-matrix) */
+      --z-subground: -10; --z-ground: 0; --z-rail-sticky: 100; --z-navigation: 200;
+      --z-disclosure: 300; --z-modal: 400; --z-critical: 500;
+    }
+
+    /* ------------------------------------------------------------------
+       2. Base
+       ------------------------------------------------------------------ */
+    @layer base {
+      *, *::before, *::after { box-sizing: border-box; }
+      html { -webkit-text-size-adjust: 100%; scrollbar-gutter: stable; }
+      @media (prefers-reduced-motion: no-preference) {
+        html { scroll-behavior: smooth; }
+      }
+      body {
+        margin: 0;
+        background: var(--bg-main);
+        color: var(--text-body);
+        font-family: var(--font-body);
+        font-size: var(--fs-body);
+        font-weight: var(--font-weight-body-regular);
+        line-height: var(--line-height-body);
+        letter-spacing: 0;
+      }
+
+      /* Obsidian ground: same tokens, different values (ground-inversion-guard) */
+      .theme-inverted {
+        --bg-main: #0b0c10;
+        --surface: #15171c;
+        --text-main: #f5f5f5;         /* 17.9:1 — headings */
+        --text-body: #e0e0e0;         /* 14.8:1 — body size, avoids halation (accessible-ink-scale) */
+        --text-muted: #b4b4b4;        /*  9.4:1 */
+        --accent-solid: #1b3d32;      /* deep green: boxes only */
+        --accent-text: #4ade80;       /* 11.2:1 — bright mint for text */
+        --accent-on-solid: #f5f5f5;   /* 10.9:1 on the deep-green box */
+        --rule: #2a2c33;
+        --watermark-alpha: 0.07;
+        --edge-stroke: 0.5px;
+        --edge-hi: rgb(255 255 255 / 0.28);
+        --edge-lo: rgb(255 255 255 / 0.04);
+        --edge-tint: rgb(74 222 128 / 0.18);
+        --edge-blend: plus-lighter;
+        --edge-functional: #666a73;   /* 3.61:1 */
+        --hr-fade: rgb(255 255 255 / 0.16);
+        background: var(--bg-main);
+        color: var(--text-body);
+        -webkit-font-smoothing: antialiased;   /* only on the dark ground */
+        -moz-osx-font-smoothing: grayscale;
+      }
+
+      h1, h2, .editorial-headline {
+        font-family: var(--font-display);
+        font-weight: var(--font-weight-display);
+        letter-spacing: var(--letter-spacing-display);
+        line-height: var(--line-height-display);
+        color: var(--text-main);
+        text-wrap: balance;
+        margin: 0;
+      }
+      h1 { font-size: var(--fs-display); }
+      h2 { font-size: var(--fs-h2); }
+      h3, h4 {
+        font-family: var(--font-body);
+        font-weight: var(--font-weight-body-bold);
+        line-height: 1.3;
+        color: var(--text-main);
+        text-wrap: balance;
+        margin: 0;
+      }
+      p, li, blockquote, figcaption, dd { text-wrap: pretty; }
+      p { margin: 0 0 1.25rem; }
+      a {
+        color: var(--accent-text);
+        text-decoration: underline;
+        text-decoration-thickness: 1px;
+        text-underline-offset: 0.16em;
+        text-decoration-color: var(--edge-functional);
+        transition: color 150ms linear, text-decoration-color 150ms linear;
+      }
+      @media (hover: hover) {
+        a:hover { text-decoration-color: currentColor; transition-duration: var(--dur-in); }
+      }
+      a:focus-visible, summary:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 3px; }
+      button, summary, input, select, textarea { font: inherit; }
+      table { border-collapse: collapse; font-variant-numeric: tabular-nums; }
+      hr { border: 0; }
+    }
+
+    /* ------------------------------------------------------------------
+       3. Layout — the ledger grid (layout-editorial-rail)
+       ------------------------------------------------------------------ */
+    @layer layout {
+      .hero {
+        position: relative;
+        isolation: isolate;
+        overflow: clip;
+        min-height: 100vh;
+        min-height: 100dvh;
+        display: grid;
+        align-content: center;
+        /* optical: text mass sits ~3% above true centre in a tall box */
+        padding: var(--pad-band) 1rem calc(var(--pad-band) + 3vh);
+      }
+      .hero-inner { width: 100%; max-width: 1200px; margin: 0 auto; }
+
+      .band { position: relative; padding: var(--pad-band) 1rem; }
+
+      .editorial-container {
+        display: grid;
+        grid-template-columns: minmax(180px, 1fr) minmax(auto, var(--measure));
+        gap: var(--gap-rail);
+        align-items: start;
+        width: 100%;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+      .rail {
+        grid-column: 1;
+        font-family: var(--font-body);
+        font-size: 0.75rem;
+        font-weight: 600;              /* ink: small + uppercase */
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        line-height: 1.4;
+        color: var(--text-muted);
+        position: sticky;
+        top: 2rem;
+        z-index: var(--z-rail-sticky);
+      }
+      .copy { grid-column: 2; max-width: var(--measure); min-width: 0; }
+      /* Wide elements are their own grid item spanning both tracks; prose after snaps back to column 2 */
+      .breakout { grid-column: 1 / -1; min-width: 0; }
+
+      .site-footer-inner { max-width: 1200px; margin: 0 auto; }
+
+      @media (max-width: 720px) {
+        .editorial-container { grid-template-columns: 1fr; gap: 0.75rem 0; }
+        .rail, .copy, .breakout { grid-column: 1; }
+        .rail { position: static; margin-bottom: 0.25rem; }
+        .breakout { margin-top: 1rem; }
+      }
+    }
+
+    /* ------------------------------------------------------------------
+       4. Components
+       ------------------------------------------------------------------ */
+    @layer components {
+      .icon-sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+      .icon { width: 1em; height: 1em; display: inline-block; vertical-align: -0.125em; }
+
+      /* --- The metadata voice (editorial-type-tokens + accessible-ink-scale) --- */
+      .ui-metadata {
+        font-family: var(--font-body);
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        line-height: 1.4;
+        text-transform: uppercase;
+        color: var(--text-muted);
+      }
+      .rail p { margin: 0 0 0.5rem; }
+      .rail .metric {
+        font-family: var(--font-display);
+        font-size: 2rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        line-height: 1.1;
+        text-transform: none;
+        color: var(--text-main);
+        font-variant-numeric: tabular-nums;
+        margin: 1.25rem 0 0.25rem;
+      }
+
+      /* --- Hero --- */
+      .kicker { margin: 0 0 1.75rem; color: var(--accent-text); }
+      .hero h1 { max-inline-size: 11ch; margin: 0 0 1.5rem; }
+      .dek {
+        font-family: var(--font-display);
+        font-weight: 400;
+        font-size: var(--fs-dek);
+        line-height: 1.4;
+        letter-spacing: -0.005em;
+        color: var(--text-body);
+        max-width: 44ch;
+        margin: 0 0 2.25rem;
+      }
+      .byline { margin: 0; }
+      .byline a { color: var(--text-main); }
+      .hero-divider {
+        position: absolute;
+        inset: auto 0 0 0;
+        color: var(--accent-solid);
+        opacity: 0.08;
+        line-height: 0;
+        pointer-events: none;
+      }
+      .ledger-steps { width: 100%; height: clamp(20px, 3vw, 40px); display: block; }
+
+      /* --- Watermark plane (sub-pixel-inertia-scroll / kinetic-planes.css, adapted) --- */
+      .kinetic-section { overflow: clip; isolation: isolate; }   /* clip, not hidden: no scroll container */
+      .parallax-meta-bg {
+        position: absolute;
+        inset: 0;
+        z-index: var(--z-subground);
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        padding-right: 1vw;
+        pointer-events: none;
+        user-select: none;
+        font-family: var(--font-display);
+        font-size: var(--fs-watermark);
+        font-weight: 700;
+        line-height: 1;
+        letter-spacing: -0.05em;
+        font-variant-numeric: tabular-nums;
+        color: var(--text-main);
+        opacity: var(--watermark-alpha);
+        will-change: transform;
+        /* Native scroll drives it, no JS. Starts high and ends low, so it lags the copy. */
+        animation: plane-drift linear both;
+        animation-timeline: view();
+        animation-range: entry 0% exit 100%;
+      }
+      @keyframes plane-drift {
+        from { transform: translateY(calc(-1 * var(--plane-lag))); }
+        to   { transform: translateY(var(--plane-lag)); }
+      }
+
+      /* --- Band top edge for the dark section (inline-svg-decorator / wave.py --flip) --- */
+      .band-wave-wrap { position: absolute; inset: 0 0 auto 0; color: var(--bg-paper); line-height: 0; pointer-events: none; }
+      .band-wave { width: 100%; height: clamp(24px, 5vw, 56px); display: block; }
+
+      /* --- Copy --- */
+      .copy h2 { margin: 0 0 1.5rem; }
+      .copy p { hyphens: auto; hyphenate-limit-chars: 6 3 3; }
+      .copy > :last-child { margin-bottom: 0; }
+      .section-lede::first-letter { font-family: var(--font-display); font-weight: 700; }
+
+      /* --- Pull quote --- */
+      .pull-quote { margin: 2.5rem 0 2.75rem; padding: 0; }
+      .pull-quote::before { content: ""; display: block; width: 3rem; height: 2px; background: var(--accent-solid); margin-bottom: 1.25rem; }
+      .pull-quote blockquote {
+        margin: 0;
+        font-family: var(--font-display);
+        font-size: var(--fs-quote);
+        font-weight: 400;
+        line-height: 1.25;
+        letter-spacing: -0.015em;
+        color: var(--text-main);
+        text-wrap: balance;
+        text-indent: -0.42em;          /* optical: hang the opening quote mark in the gutter */
+      }
+      .pull-quote blockquote p { margin: 0; hyphens: manual; }
+      .pull-quote figcaption {
+        margin-top: 1rem;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        letter-spacing: 0.02em;
+        line-height: 1.5;
+        color: var(--text-muted);
+      }
+
+      /* --- Data table (breakout) --- */
+      .table-scroll { overflow-x: auto; margin: 0.5rem 0 1rem; }
+      .ledger-table {
+        width: 100%;
+        min-width: 58rem;
+        font-size: 0.875rem;
+        font-weight: 500;              /* ink: one tier up at 14px */
+        line-height: 1.5;
+        font-variant-numeric: tabular-nums;
+      }
+      .ledger-table caption {
+        caption-side: top;
+        text-align: left;
+        font-family: var(--font-body);
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        line-height: 1.4;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        padding: 0 0 0.75rem;
+      }
+      .ledger-table th {
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        line-height: 1.4;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        text-align: right;
+        vertical-align: bottom;
+        padding: 0.5rem 0.75rem 0.6rem;
+      }
+      .ledger-table td {
+        text-align: right;
+        vertical-align: top;
+        white-space: nowrap;
+        padding: 0.55rem 0.75rem 0.6rem;   /* optical: heavier bottom */
+        color: var(--text-body);
+      }
+      .ledger-table th:first-child, .ledger-table td:first-child { text-align: left; padding-left: 0; }
+      .ledger-table th:last-child, .ledger-table td:last-child { padding-right: 0; }
+      /* Row rules fade at both ends — an edge, not a wall (adaptive-luminescent-border) */
+      .ledger-table tr {
+        background: linear-gradient(90deg, transparent, var(--hr-fade) 6%, var(--hr-fade) 94%, transparent) bottom / 100% var(--edge-stroke) no-repeat;
+      }
+      .ledger-table thead tr {
+        background: linear-gradient(90deg, transparent, var(--edge-functional) 4%, var(--edge-functional) 96%, transparent) bottom / 100% 1px no-repeat;
+      }
+      .ledger-table .delta-neg { color: var(--accent-text); font-weight: 600; }
+      .ledger-table .delta-pos { color: var(--text-main); font-weight: 600; }
+      .ledger-table tfoot tr { background: none; }
+      .ledger-table tfoot td {
+        text-align: left;
+        white-space: normal;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        letter-spacing: 0.02em;
+        line-height: 1.5;
+        color: var(--text-muted);
+        padding: 0.9rem 0 0;
+        text-wrap: pretty;
+      }
+
+      /* --- Methodology note: native disclosure (html5-native-fallback) --- */
+      .method-note { margin: 0 0 1.5rem; }
+      .method-note summary {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        list-style: none;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 0.9375rem;
+        color: var(--text-main);
+        padding: 0.75rem 0 0.8rem;     /* optical: heavier bottom */
+      }
+      .method-note summary::-webkit-details-marker { display: none; }
+      .method-note .indicator {
+        width: 1em; height: 1em;
+        position: relative;
+        top: -1px;                     /* optical: cap-height alignment */
+        flex: none;
+        color: var(--accent-text);
+        transition: transform 200ms var(--ease-out);
+      }
+      .method-note[open] .indicator { transform: rotate(45deg); }
+      .method-note .note-body { padding: 0.25rem 0 0.5rem 1.5em; max-width: var(--measure); }
+      .method-note .note-body p { font-size: 0.9375rem; }
+
+      /* --- Section dividers --- */
+      .luminescent-rule {
+        border: 0;
+        height: var(--edge-stroke);
+        max-width: 1200px;
+        margin: 0 auto;
+        background: linear-gradient(90deg, transparent, var(--hr-fade) 15%, var(--hr-fade) 85%, transparent);
+        mix-blend-mode: var(--edge-blend);
+      }
+
+      /* --- Related reading --- */
+      .related-list { list-style: none; margin: 0; padding: 0; }
+      .related-list li {
+        background: linear-gradient(90deg, transparent, var(--hr-fade) 15%, var(--hr-fade) 85%, transparent) bottom / 100% var(--edge-stroke) no-repeat;
+      }
+      .related-link {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 0.35rem 1rem;
+        align-items: start;
+        padding: 1.25rem 0.75rem 1.35rem;  /* optical: heavier bottom */
+        margin: 0 -0.75rem;
+        border-radius: 4px;
+        color: inherit;
+        text-decoration: none;
+        background-color: transparent;
+        /* list rows tint, they don't lift (tactile-interaction-curves) */
+        transition: background-color 150ms linear, transform var(--dur-out) var(--ease-out);
+      }
+      @media (hover: hover) {
+        .related-link:hover { background-color: var(--surface); }
+      }
+      .related-link:active { transform: scale(0.995); transition-duration: var(--dur-press); }
+      .related-link:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; }
+      .related-link .ui-metadata { grid-column: 1; }
+      .related-link .title {
+        grid-column: 1;
+        font-family: var(--font-display);
+        font-size: 1.375rem;
+        font-weight: 700;
+        letter-spacing: -0.015em;
+        line-height: 1.2;
+        color: var(--text-main);
+      }
+      .related-link .blurb { grid-column: 1; margin: 0; font-size: 0.9375rem; color: var(--text-body); max-width: 52ch; }
+      .related-link .icon {
+        grid-column: 2;
+        grid-row: 1 / span 3;
+        align-self: start;
+        width: 1.25rem; height: 1.25rem;
+        position: relative;
+        top: -1px;                     /* optical: sits on the meta label's cap-height */
+        color: var(--accent-text);
+      }
+
+      /* --- Footer --- */
+      .site-footer { padding: 3rem 1rem 4rem; }
+      .site-footer-inner {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.5rem 3rem;
+        justify-content: space-between;
+        align-items: baseline;
+      }
+      .masthead {
+        font-family: var(--font-display);
+        font-weight: 700;
+        font-size: 1.25rem;
+        letter-spacing: -0.01em;
+        color: var(--text-main);
+        margin: 0;
+      }
+      .site-footer nav ul { list-style: none; display: flex; flex-wrap: wrap; gap: 0.25rem 1.5rem; margin: 0; padding: 0; }
+      .site-footer nav a {
+        font-size: 0.8125rem;
+        font-weight: 500;
+        letter-spacing: 0.02em;
+        line-height: 1.5;
+        color: var(--text-main);
+      }
+      .colophon {
+        flex-basis: 100%;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        letter-spacing: 0.02em;
+        line-height: 1.5;
+        color: var(--text-muted);
+        margin: 0;
+        max-width: var(--measure);
+      }
+
+      /* --- Skip link --- */
+      .skip-link {
+        position: absolute;
+        top: 0.5rem; left: 0.5rem;
+        z-index: var(--z-critical);
+        padding: 0.5rem 0.75rem 0.55rem;   /* optical: heavier bottom */
+        background: var(--accent-solid);
+        color: var(--accent-on-solid);
+        font-weight: 600;
+        text-decoration: none;
+        border-radius: 4px;
+      }
+      .skip-link:not(:focus-visible) {
+        width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+      }
+
+      /* --- Entrance guard (gsap-timeline-orchestrator). Hidden only when scripting is on,
+             only when motion is allowed; revealed again if GSAP never arrives. --- */
+      html.no-gsap [data-reveal] { visibility: visible; }
+
+      /* --- Component-level reduced-motion degrades, next to the motion they cancel --- */
+      @media (prefers-reduced-motion: reduce) {
+        .parallax-meta-bg { animation: none; transform: none; will-change: auto; }
+        .related-link, .related-link:active { transform: none; }
+        .method-note .indicator { transition: none; }
+      }
+    }
+
+    @media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
+      @layer components {
+        [data-reveal] { visibility: hidden; }
+      }
+    }
+
+    /* ------------------------------------------------------------------
+       5. Utilities — always win
+       ------------------------------------------------------------------ */
+    @layer utilities {
+      .nowrap { white-space: nowrap; }
+      .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    }
+
+    /* Global reduced-motion filter (reduced-motion-enforcer): whitelist non-spatial properties.
+       Lives in the last layer so it beats every component without !important. */
+    @media (prefers-reduced-motion: reduce) {
+      @layer utilities {
+        *, *::before, *::after {
+          transition-property: opacity, color, background-color, border-color, text-decoration-color, box-shadow, fill, stroke;
+          transition-duration: 150ms;
+          animation: none;
+          scroll-behavior: auto;
+          background-attachment: scroll;
+        }
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <a class="skip-link" href="#main">Skip to article</a>
+
+  <!-- Inline icon sprite (inline-svg-decorator/references/icon-set.md): define once, <use> many -->
+  <svg class="icon-sprite" aria-hidden="true" focusable="false" viewBox="0 0 0 0">
+    <symbol id="i-arrow-up-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M7 17L17 7M8 7h9v9"/>
+    </symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 5v14M5 12h14"/>
+    </symbol>
+  </svg>
+
+  <main id="main">
+    <article class="feature">
+
+      <header class="hero" data-entrance>
+        <div class="hero-inner">
+          <p class="kicker ui-metadata" data-reveal="rail">Meridian Review <span aria-hidden="true">·</span> Feature <span aria-hidden="true">·</span> Working capital</p>
+          <h1 data-reveal="title">The Quiet Ledger</h1>
+          <p class="dek" data-reveal>How mid-market CFOs are rethinking cash — and why the most consequential shift in corporate finance since the rate shock is happening in a spreadsheet nobody presents to the board.</p>
+          <p class="byline ui-metadata" data-reveal>By <a rel="author" href="/authors/ingrid-halvorsen">Ingrid Halvorsen</a> <span aria-hidden="true">·</span> <time datetime="2026-09-17" class="nowrap">17 September 2026</time> <span aria-hidden="true">·</span> <span class="nowrap">14 min read</span></p>
+        </div>
+        <div class="hero-divider">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 48" preserveAspectRatio="none" class="ledger-steps" aria-hidden="true" focusable="false">
+            <path d="M0,32 V16 H100 V32 H200 V16 H300 V32 H400 V16 H500 V32 H600 V16 H700 V32 H800 V16 H900 V32 H1000 V16 H1100 V32 H1200 V48 H0 Z" fill="currentColor"/>
+          </svg>
+        </div>
+      </header>
+
+      <!-- 01 -->
+      <section class="band kinetic-section" id="the-shock" aria-labelledby="h-shock" data-entrance>
+        <div class="parallax-meta-bg" data-plane="0.3" aria-hidden="true">01</div>
+        <div class="editorial-container">
+          <aside class="rail" data-reveal="rail">
+            <p>01 <span aria-hidden="true">—</span> The shock</p>
+            <p><span class="nowrap">Mar 2022</span> – <span class="nowrap">Jul 2023</span></p>
+            <p class="metric">+525&#8239;bp</p>
+            <p>US policy rate, cumulative</p>
+          </aside>
+          <div class="copy">
+            <h2 id="h-shock" data-reveal="title">The cash that wasn't there</h2>
+            <p class="section-lede" data-reveal>For a decade, the finance function of a $300&nbsp;million manufacturer could afford to be relaxed about cash. Revolving credit was cheap, covenants were loose, and a receivable that took 65&nbsp;days to settle instead of 45 cost, in interest terms, almost nothing. The balance sheet was managed at the quarter; cash was managed by the bank.</p>
+            <p data-reveal>That ended in fourteen months. Between March 2022 and July 2023 the US policy rate rose 525&nbsp;basis points; term loans repriced within a quarter, and revolvers that had drawn at 3&#8239;% were suddenly drawing at 8.5&#8239;%. For a company carrying $60&nbsp;million of floating-rate debt, the annual interest bill rose by more than $3&nbsp;million — roughly the operating profit of a business unit.</p>
+            <p data-reveal>What the rate shock exposed was not leverage but inattention. In Meridian's survey of 412 mid-market finance leaders (revenue $50&nbsp;million to $1&nbsp;billion), 61&nbsp;per&nbsp;cent said that in 2021 nobody in their organisation owned a rolling cash forecast. By mid-2026 that figure had fallen to 9&nbsp;per&nbsp;cent. The work of reconstruction — quiet, unglamorous and largely invisible from outside — is the subject of this piece.</p>
+          </div>
+        </div>
+      </section>
+
+      <hr class="luminescent-rule">
+
+      <!-- 02 -->
+      <section class="band kinetic-section" id="the-instrument" aria-labelledby="h-instrument" data-entrance>
+        <div class="parallax-meta-bg" data-plane="0.3" aria-hidden="true">02</div>
+        <div class="editorial-container">
+          <aside class="rail" data-reveal="rail">
+            <p>02 <span aria-hidden="true">—</span> The instrument</p>
+            <p>Direct method, weekly</p>
+            <p class="metric">13&#8239;wks</p>
+            <p>Forecast horizon</p>
+          </aside>
+          <div class="copy">
+            <h2 id="h-instrument" data-reveal="title">Thirteen weeks, every Monday</h2>
+            <p class="section-lede" data-reveal>The instrument at the centre of the change is old. The 13-week direct cash flow forecast — receipts and disbursements, by week, by bank account, reconciled to actuals every Monday morning — was a restructuring tool, deployed by turnaround advisers when a company was already in trouble. Its association with distress is exactly why healthy companies avoided it.</p>
+            <p data-reveal>That stigma has gone. “We run it in the good years now because it’s the only view of the business that doesn’t lie,” says Marcus Adebayo, chief financial officer of Halden Fabrication, a $410&nbsp;million industrial group based in Ohio. “The P&amp;L can be argued with. Accruals can be argued with. The bank balance on Friday afternoon cannot.”</p>
+            <figure class="pull-quote" data-reveal>
+              <blockquote>
+                <p>“The P&amp;L can be argued with. The bank balance on Friday afternoon cannot.”</p>
+              </blockquote>
+              <figcaption>Marcus Adebayo, CFO, Halden Fabrication</figcaption>
+            </figure>
+            <p data-reveal>The discipline is in the reconciliation, not the forecast. Week one is compared with what actually happened; every variance is explained line by line; the next twelve weeks are re-forecast in the light of it. Done properly, it forces sales, operations and procurement into the same room each week to answer a single question: where is the cash going to come from, and when?</p>
+            <p data-reveal>For CFOs who inherited a treasury function that lived inside the controller's month-end close, that weekly cadence has been the larger cultural shift. Cash, once a residual — the number left over after everything else had been accounted for — has become a managed input.</p>
+          </div>
+        </div>
+      </section>
+
+      <hr class="luminescent-rule">
+
+      <!-- 03 -->
+      <section class="band kinetic-section" id="the-metrics" aria-labelledby="h-metrics" data-entrance>
+        <div class="parallax-meta-bg" data-plane="0.3" aria-hidden="true">03</div>
+        <div class="editorial-container">
+          <aside class="rail" data-reveal="rail">
+            <p>03 <span aria-hidden="true">—</span> The metrics</p>
+            <p>412 companies, FY23 – FY26</p>
+            <p class="metric">−11&#8239;days</p>
+            <p>Median cash conversion cycle change</p>
+          </aside>
+          <div class="copy">
+            <h2 id="h-metrics" data-reveal="title">Days, not dollars</h2>
+            <p class="section-lede" data-reveal>The vocabulary changed too. Working-capital conversations that used to be conducted in dollars — how much is tied up in stock, how large is the receivables book — are now conducted in days: days sales outstanding, days payable outstanding, days inventory outstanding, and the net figure, the cash conversion cycle. Days are comparable across business units and across competitors; dollars are not.</p>
+          </div>
+          <div class="breakout table-scroll" data-reveal>
+            <table class="ledger-table">
+              <caption>Cash conversion cycle by sector, mid-market median, days</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Sector</th>
+                  <th scope="col">DSO 2023</th>
+                  <th scope="col">DSO 2026</th>
+                  <th scope="col">DPO 2023</th>
+                  <th scope="col">DPO 2026</th>
+                  <th scope="col">DIO 2023</th>
+                  <th scope="col">DIO 2026</th>
+                  <th scope="col">CCC 2023</th>
+                  <th scope="col">CCC 2026</th>
+                  <th scope="col">Change</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>Industrial manufacturing</td><td>58</td><td>51</td><td>44</td><td>49</td><td>71</td><td>62</td><td>85</td><td>64</td><td class="delta-neg">−21</td></tr>
+                <tr><td>Distribution &amp; wholesale</td><td>43</td><td>39</td><td>36</td><td>40</td><td>66</td><td>48</td><td>73</td><td>47</td><td class="delta-neg">−26</td></tr>
+                <tr><td>Business services</td><td>62</td><td>54</td><td>28</td><td>31</td><td>4</td><td>3</td><td>38</td><td>26</td><td class="delta-neg">−12</td></tr>
+                <tr><td>Software</td><td>47</td><td>56</td><td>31</td><td>33</td><td>0</td><td>0</td><td>16</td><td>23</td><td class="delta-pos">+7</td></tr>
+                <tr><td>Consumer products</td><td>39</td><td>36</td><td>41</td><td>45</td><td>58</td><td>51</td><td>56</td><td>42</td><td class="delta-neg">−14</td></tr>
+                <tr><td>Healthcare services</td><td>51</td><td>46</td><td>33</td><td>35</td><td>12</td><td>11</td><td>30</td><td>22</td><td class="delta-neg">−8</td></tr>
+              </tbody>
+              <tfoot>
+                <tr><td colspan="10">Source: Meridian Review analysis of 412 company filings, fiscal years 2023 and 2026, annualised to June. Sector rows are medians of companies within the sector; the company-level median change is −11&nbsp;days. CCC = DSO + DIO − DPO.</td></tr>
+              </tfoot>
+            </table>
+          </div>
+          <div class="copy">
+            <p data-reveal>The pattern across sectors is consistent: receivables collected faster, payables stretched where suppliers would tolerate it, and inventory brought down hardest in distribution, where the post-pandemic overstock had been most severe. The one sector that moved the other way — software — was responding to a different pressure: customers demanding monthly rather than annual billing, which lengthened DSO even as everything else tightened.</p>
+            <details class="method-note" data-reveal>
+              <summary>
+                <svg class="indicator" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg>
+                <span>How the ledger was built</span>
+              </summary>
+              <div class="note-body">
+                <p>Companies were drawn from public filings and audited private accounts with revenue between $50&nbsp;million and $1&nbsp;billion in fiscal 2023. Days metrics use year-end balances against annual revenue and cost of sales; software DIO is reported as zero where inventory is immaterial. Medians rather than means are used throughout, so a handful of large restructurings do not distort sector figures.</p>
+              </div>
+            </details>
+            <p data-reveal>An eleven-day improvement in the median cash conversion cycle sounds modest. For a company with $500&nbsp;million of revenue it is roughly $15&nbsp;million of cash released permanently — capital that no longer needs to be borrowed, or that can be returned. Across the sample, Meridian estimates the change released $6.1&nbsp;billion.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 04 — inverted ground -->
+      <section class="band kinetic-section theme-inverted" id="the-tooling" aria-labelledby="h-tooling" data-entrance>
+        <div class="band-wave-wrap">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none" class="band-wave" aria-hidden="true" focusable="false">
+            <path d="M0,60 C140,20 260,100 400,60 C540,94 660,26 800,60 C940,22 1060,98 1200,60 L1200,120 L0,120 Z" fill="currentColor" transform="scale(1,-1) translate(0,-120)"/>
+          </svg>
+        </div>
+        <div class="parallax-meta-bg" data-plane="0.3" aria-hidden="true">04</div>
+        <div class="editorial-container">
+          <aside class="rail" data-reveal="rail">
+            <p>04 <span aria-hidden="true">—</span> The tooling</p>
+            <p>Primary forecast tool</p>
+            <p class="metric">38&#8239;%</p>
+            <p>Still a workbook</p>
+          </aside>
+          <div class="copy">
+            <h2 id="h-tooling" data-reveal="title">The treasury that lives in a spreadsheet</h2>
+            <p class="section-lede" data-reveal>For all the talk of treasury-management platforms, the most common tool in the mid-market cash forecast is still a workbook. Thirty-eight per&nbsp;cent of respondents said their primary forecast lived in Excel; a further 24&nbsp;per&nbsp;cent used a spreadsheet that pulled from an ERP but was maintained by hand. The reasons are practical rather than nostalgic: the forecast has to be rebuilt every week, and the people rebuilding it need to see every assumption.</p>
+            <p data-reveal>What has changed is what feeds the workbook. Bank connectivity — once a treasury-only luxury requiring a SWIFT membership and a six-figure integration — is now available through API aggregators for a few thousand dollars a year. Balances that used to be keyed in from a portal each morning arrive automatically, reconciled, before the treasury analyst has finished a coffee. The spreadsheet remains; the typing has gone.</p>
+            <p data-reveal>The cultural effect is easy to underestimate. When the opening balance is trusted, argument moves to the assumptions: will the Meyer contract pay in week six or week eight? Is the inventory build for the fourth quarter really necessary? Those are commercial questions, and in the better-run companies Meridian spoke to they are now answered by the commercial team — in a weekly meeting that the CFO chairs but does not dominate. Read the <a href="/features/controllers-second-job">companion interview</a> for how three finance leaders run it.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 05 -->
+      <section class="band kinetic-section" id="the-consequence" aria-labelledby="h-consequence" data-entrance>
+        <div class="parallax-meta-bg" data-plane="0.3" aria-hidden="true">05</div>
+        <div class="editorial-container">
+          <aside class="rail" data-reveal="rail">
+            <p>05 <span aria-hidden="true">—</span> The consequence</p>
+            <p>Median net debt to EBITDA</p>
+            <p class="metric">2.1×</p>
+            <p>Down from 2.8× in 2023</p>
+          </aside>
+          <div class="copy">
+            <h2 id="h-consequence" data-reveal="title">What the quiet ledger changes</h2>
+            <p class="section-lede" data-reveal>The visible results are on the balance sheet. Median net leverage across the sample fell from 2.8&nbsp;times EBITDA in 2023 to 2.1&nbsp;times in 2026, and only part of that was earnings growth; most of it was cash. Covenant headroom widened. Several CFOs described renegotiating facilities from a position of strength for the first time in their careers.</p>
+            <p data-reveal>The less visible result is a change in the CFO's relationship with the board. A board that sees a 13-week forecast every month, with last month's variance explained, stops asking whether the company can make payroll and starts asking what the cash should be used for. That is a capital-allocation conversation, and it is the conversation finance leaders say they always wanted to be having.</p>
+            <p data-reveal>None of this required a new theory of the firm. The tools are decades old; the arithmetic is simple; the discipline is weekly. What the rate shock did was make the cost of not knowing visible — and once it was visible, the quiet ledger became the most important document in the building. It is unlikely to go back in the drawer when rates fall.</p>
+          </div>
+        </div>
+      </section>
+
+    </article>
+
+    <hr class="luminescent-rule">
+
+    <aside class="band" aria-labelledby="h-related">
+      <div class="editorial-container">
+        <div class="rail">
+          <p>Related reading</p>
+          <p>Three pieces from the archive</p>
+        </div>
+        <div class="copy">
+          <h2 id="h-related" class="visually-hidden">Related reading</h2>
+          <ul class="related-list">
+            <li>
+              <a class="related-link" href="/features/the-covenant-nobody-read">
+                <span class="ui-metadata">Feature <span aria-hidden="true">·</span> 11 min</span>
+                <h3 class="title">The covenant nobody read</h3>
+                <p class="blurb">Why leverage ratios written in 2019 are still governing credit decisions in 2026.</p>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#i-arrow-up-right"/></svg>
+              </a>
+            </li>
+            <li>
+              <a class="related-link" href="/analysis/inventorys-long-hangover">
+                <span class="ui-metadata">Analysis <span aria-hidden="true">·</span> 8 min</span>
+                <h3 class="title">Inventory's long hangover</h3>
+                <p class="blurb">Distribution balance sheets two years after the great overstock.</p>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#i-arrow-up-right"/></svg>
+              </a>
+            </li>
+            <li>
+              <a class="related-link" href="/features/controllers-second-job">
+                <span class="ui-metadata">Interview <span aria-hidden="true">·</span> 6 min</span>
+                <h3 class="title">The controller's second job</h3>
+                <p class="blurb">Three finance leaders on running treasury from the month-end close.</p>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#i-arrow-up-right"/></svg>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <hr class="luminescent-rule">
+
+  <footer class="site-footer">
+    <div class="site-footer-inner">
+      <p class="masthead">Meridian Review</p>
+      <nav aria-label="Footer">
+        <ul>
+          <li><a href="/about">About</a></li>
+          <li><a href="/archive">Archive</a></li>
+          <li><a href="/subscribe">Subscribe</a></li>
+          <li><a href="/privacy">Privacy</a></li>
+        </ul>
+      </nav>
+      <p class="colophon">© 2026 Meridian Review. Finance and operations, reported slowly. Company figures in this feature are drawn from Meridian's mid-market working-capital survey; individuals are quoted with permission.</p>
+    </div>
+  </footer>
+
+  <!-- GSAP from jsDelivr — the one acknowledged CDN exception. Deferred so a slow CDN never blocks paint;
+       every piece of content is visible if these fail (see the scripting/no-gsap guards in CSS). -->
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/ScrollTrigger.min.js" defer></script>
+
+  <script>
+    // One block, one entry point: planes fallback + section entrances.
+    (() => {
+      'use strict';
+      const doc = document.documentElement;
+      const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+      const revealAll = () => doc.classList.add('no-gsap');
+
+      /* ---------- 1. Parallax planes — JS fallback where CSS scroll-driven animations are missing
+                     (sub-pixel-inertia-scroll / inertia-planes.js, adapted to the lag keyframes). ---------- */
+      function initPlanes() {
+        const supportsSDA = typeof CSS !== 'undefined' && CSS.supports('animation-timeline: view()');
+        if (supportsSDA || reduce.matches) return;
+        const planes = [...document.querySelectorAll('[data-plane]')].map(el => {
+          const lagRaw = parseFloat(getComputedStyle(el).getPropertyValue('--plane-lag'));
+          return { el, lag: isNaN(lagRaw) ? 16 : lagRaw, current: 0, target: 0,
+                   section: el.closest('.kinetic-section') || el.parentElement };
+        });
+        if (!planes.length) return;
+        const LERP = 0.12;            // 0.1–0.15 reads as weight without lagging the copy
+        let ticking = false;
+        function measure() {
+          const vh = window.innerHeight;
+          for (const p of planes) {
+            const r = p.section.getBoundingClientRect();
+            const progress = (vh - r.top) / (vh + r.height);     // 0 entering → 1 leaving
+            const lagPx = (p.lag / 100) * vh;
+            p.target = (progress - 0.5) * 2 * lagPx;             // −lag → +lag, matches @keyframes plane-drift
+          }
+        }
+        function frame() {
+          let moving = false;
+          for (const p of planes) {
+            p.current += (p.target - p.current) * LERP;
+            if (Math.abs(p.target - p.current) > 0.05) moving = true;
+            p.el.style.transform = `translate3d(0, ${p.current.toFixed(2)}px, 0)`;
+          }
+          ticking = moving;
+          if (moving) requestAnimationFrame(frame);
+        }
+        function onScroll() {
+          measure();
+          if (!ticking) { ticking = true; requestAnimationFrame(frame); }
+        }
+        addEventListener('scroll', onScroll, { passive: true });
+        addEventListener('resize', onScroll, { passive: true });
+        onScroll();
+        reduce.addEventListener('change', () => {
+          if (reduce.matches) planes.forEach(p => { p.el.style.transform = ''; });
+        });
+      }
+
+      /* ---------- 2. Section entrances (gsap-timeline-orchestrator / entrance.js) ---------- */
+      const DEFAULTS = {
+        ease: 'power4.out', duration: 1.1, stagger: 0.05,
+        railX: -15, titleY: 25, copyY: 15, scroll: true, scrollStart: 'top 80%',
+      };
+      function entrance(section, opts = {}) {
+        const o = { ...DEFAULTS, ...opts };
+        const rail  = section.querySelectorAll('[data-reveal="rail"]');
+        const title = section.querySelectorAll('[data-reveal="title"]');
+        const copy  = section.querySelectorAll('[data-reveal=""], [data-reveal="copy"]');
+        const tl = gsap.timeline({
+          paused: true,
+          defaults: { ease: o.ease, duration: o.duration },
+          onComplete: () => gsap.set([...rail, ...title, ...copy], { clearProps: 'transform' }),
+        });
+        if (rail.length)  tl.from(rail,  { autoAlpha: 0, x: o.railX, duration: o.duration + 0.2 }, 0);
+        if (title.length) tl.from(title, { autoAlpha: 0, y: o.titleY }, 0.15);
+        if (copy.length)  tl.from(copy,  { autoAlpha: 0, y: o.copyY, stagger: o.stagger }, 0.3);
+        if (o.scroll) {
+          if (window.ScrollTrigger) {
+            ScrollTrigger.create({ trigger: section, start: o.scrollStart, once: true, onEnter: () => tl.play() });
+          } else {
+            // ScrollTrigger missing: fall back to an observer so below-fold content is never stranded hidden
+            const io = new IntersectionObserver((entries) => {
+              if (entries.some(e => e.isIntersecting)) { tl.play(); io.disconnect(); }
+            }, { rootMargin: '0px 0px -20% 0px' });
+            io.observe(section);
+          }
+        }
+        return tl;
+      }
+      function entranceAll(opts = {}) {
+        const sections = [...document.querySelectorAll('[data-entrance]')];
+        if (window.ScrollTrigger) gsap.registerPlugin(ScrollTrigger);
+        const mm = gsap.matchMedia();
+        mm.add('(prefers-reduced-motion: no-preference)', () => {
+          const tls = sections.map((s, i) => entrance(s, { ...opts, scroll: i > 0 }));
+          if (tls[0]) tls[0].play();                 // above-the-fold section plays immediately
+          return () => tls.forEach(t => t.kill());
+        });
+        mm.add('(prefers-reduced-motion: reduce)', () => {
+          gsap.set('[data-reveal]', { autoAlpha: 1 });   // no motion: just make everything visible
+        });
+        return mm;
+      }
+
+      function init() {
+        initPlanes();
+        if (!window.gsap) { revealAll(); return; }     // CDN blocked: content simply shows
+        try { entranceAll(); } catch (err) { revealAll(); }
+      }
+
+      // The CDN scripts are deferred, so wait for them; and never leave content hidden if they stall.
+      setTimeout(() => { if (!window.gsap) revealAll(); }, 3000);
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+      else init();
+    })();
+  </script>
+</body>
+</html>
