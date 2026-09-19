@@ -1,6 +1,6 @@
 {
   "name": "editorial-web-craft",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Twenty composable skills plus a web-craft orchestrator for building editorial-grade web interfaces: ledger layouts, fluid type, optical polish, dual-ground colour, tactile motion, and audits that keep it all honest.",
   "author": {
     "name": "Fernando Kylas",
@@ -12,6 +12,5 @@
   "keywords": ["web-design", "frontend", "css", "typography", "editorial", "accessibility", "motion", "design-system", "skills"],
   "skills": "./skills/",
   "commands": "./commands/",
-  "hooks": "./hooks/hooks.json",
   "mcpServers": "./.mcp.json"
 }

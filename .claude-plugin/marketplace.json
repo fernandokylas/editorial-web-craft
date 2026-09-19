@@ -10,7 +10,7 @@
     {
       "name": "editorial-web-craft",
       "source": "./",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "description": "Twenty composable skills plus a web-craft orchestrator for building editorial-grade web interfaces, with audit scripts and Chrome DevTools preview.",
       "category": "design",
       "keywords": ["web-design", "frontend", "css", "typography", "editorial", "accessibility", "motion"]
